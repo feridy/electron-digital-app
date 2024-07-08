@@ -1,6 +1,8 @@
-import { resolve } from 'path'
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
-import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path';
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import vueJsx from '@vitejs/plugin-vue-jsx';
+import vueDevTools from 'vite-plugin-vue-devtools';
+import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   main: {
@@ -15,6 +17,6 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [vue()]
+    plugins: [vue(), vueJsx(), vueDevTools()]
   }
-})
+});
