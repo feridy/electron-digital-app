@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
+import { connectMesSocket } from './net';
 import icon from '../../resources/icon.png?asset';
 
 async function createWindow() {
@@ -33,12 +34,14 @@ async function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  return mainWindow;
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron');
 
@@ -52,12 +55,60 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'));
 
-  createWindow();
+  const mainWindow = await createWindow();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+
+  // MES TCP
+  const mesTcp = await connectMesSocket('192.168.7.36', 3000);
+
+  mainWindow.webContents.send('mes:tcp:connect', true);
+
+  ipcMain.handle('mes:tcp:test', () => {
+    return !mesTcp.closed;
+  });
+
+  ipcMain.handle('mes:tcp:send', async (_event, data: string) => {
+    return new Promise<void>((resolve, reject) => {
+      mesTcp.write(data, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  });
+
+  ipcMain.on('mes:tcp:client:connect', () => {
+    console.log('mes:tcp:client:connect');
+    if (mesTcp.closed)
+      mesTcp.connect({
+        port: 3000
+      });
+  });
+
+  ipcMain.on('mes:tcp:client:close', () => {
+    console.log('mes:tcp:client:close');
+    mesTcp.end();
+  });
+
+  mesTcp.on('connect', () => {
+    mainWindow.webContents.send('mes:tcp:connect', true);
+  });
+
+  mesTcp.on('data', (data) => {
+    const str = data.toString();
+    mainWindow.webContents.send('mes:tcp:data', str);
+  });
+
+  mesTcp.on('close', () => {
+    mainWindow.webContents.send('mes:tcp:close');
+  });
+
+  mesTcp.on('error', (err) => {
+    mainWindow.webContents.send('mes:tcp:error', err);
   });
 });
 
