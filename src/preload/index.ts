@@ -3,7 +3,8 @@ import { electronAPI } from '@electron-toolkit/preload';
 
 // Custom APIs for renderer
 const api = {
-  tcpConnectState: false
+  tcpConnectState: false,
+  execute: (...args) => electronAPI.ipcRenderer.invoke('db:execute', ...args)
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to
