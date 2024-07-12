@@ -1,39 +1,72 @@
+import { BrowserWindow, IpcMain } from 'electron';
 import * as net from 'node:net';
 
-export function connectMesSocket(ip: string, prot: number) {
-  return new Promise<net.Socket>((resolve, reject) => {
-    const client = net.connect(
-      {
-        host: ip,
-        port: prot
-      },
-      () => {
-        resolve(client);
-      }
-    );
+export function connectMesSocket(
+  ip: string,
+  prot: number,
+  mainWindow: BrowserWindow,
+  ipcMain: IpcMain
+) {
+  const client = net.connect(
+    {
+      host: ip,
+      port: prot
+    },
+    () => {
+      mainWindow.webContents.send('mes:tcp:connect', true);
+      // mainWindow.webContents.session
+    }
+  );
 
-    client.on('data', (data) => {
-      console.log('Received:', data.toString());
+  ipcMain.handle('mes:tcp:send', async (_event, data: string) => {
+    return new Promise<void>((resolve, reject) => {
+      client.write(data, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
     });
+  });
 
-    client.on('close', () => {
-      console.log('Connection closed');
+  ipcMain.on('mes:tcp:client:connect', () => {
+    client.connect({
+      port: 3000
     });
+  });
 
-    client.on('end', () => {
-      console.log('Connection ended');
-    });
+  ipcMain.on('mes:tcp:client:close', () => {
+    console.log('mes:tcp:client:close');
+    client.end();
+  });
 
-    client.on('error', (err) => {
-      console.error('Error:', err.message);
-      client.end();
-      reject(err);
-    });
+  client.on('connect', () => {
+    console.log('Connected to the server');
+    mainWindow.webContents.send('mes:tcp:connect', true);
+  });
 
-    client.on('timeout', () => {
-      console.log('Connection timed out');
-      client.end();
-      reject(new Error('Connection timed out'));
-    });
+  client.on('data', (data) => {
+    console.log('Received:', data.toString());
+    const str = data.toString();
+    mainWindow.webContents.send('mes:tcp:data', str);
+  });
+
+  client.on('close', () => {
+    console.log('Connection closed');
+    mainWindow.webContents.send('mes:tcp:close');
+  });
+
+  client.on('end', () => {
+    console.log('Connection ended');
+  });
+
+  client.on('error', (err) => {
+    console.error('Error:', err.message);
+    client.end();
+    mainWindow.webContents.send('mes:tcp:error', err);
+  });
+
+  client.on('timeout', () => {
+    console.log('Connection timed out');
+    client.end();
+    mainWindow.webContents.send('mes:tcp:error', new Error('timeout'));
   });
 }

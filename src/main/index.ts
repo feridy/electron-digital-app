@@ -2,7 +2,11 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { connectMesSocket } from './net';
+import { initSerialHandler } from './port';
+import { initMainLog } from '../log/mainLog';
 import icon from '../../resources/icon.png?asset';
+
+const log = initMainLog();
 
 async function createWindow() {
   // Create the browser window.
@@ -64,52 +68,9 @@ app.whenReady().then(async () => {
   });
 
   // MES TCP
-  const mesTcp = await connectMesSocket('192.168.7.36', 3000);
-
-  mainWindow.webContents.send('mes:tcp:connect', true);
-
-  ipcMain.handle('mes:tcp:test', () => {
-    return !mesTcp.closed;
-  });
-
-  ipcMain.handle('mes:tcp:send', async (_event, data: string) => {
-    return new Promise<void>((resolve, reject) => {
-      mesTcp.write(data, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-  });
-
-  ipcMain.on('mes:tcp:client:connect', () => {
-    console.log('mes:tcp:client:connect');
-    if (mesTcp.closed)
-      mesTcp.connect({
-        port: 3000
-      });
-  });
-
-  ipcMain.on('mes:tcp:client:close', () => {
-    console.log('mes:tcp:client:close');
-    mesTcp.end();
-  });
-
-  mesTcp.on('connect', () => {
-    mainWindow.webContents.send('mes:tcp:connect', true);
-  });
-
-  mesTcp.on('data', (data) => {
-    const str = data.toString();
-    mainWindow.webContents.send('mes:tcp:data', str);
-  });
-
-  mesTcp.on('close', () => {
-    mainWindow.webContents.send('mes:tcp:close');
-  });
-
-  mesTcp.on('error', (err) => {
-    mainWindow.webContents.send('mes:tcp:error', err);
-  });
+  connectMesSocket('192.168.7.36', 3000, mainWindow, ipcMain);
+  // SerialPort
+  initSerialHandler(mainWindow, ipcMain);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -119,6 +80,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+
+  log.info('..........程序退出..........');
 });
 
 // In this file you can include the rest of your app"s specific main process

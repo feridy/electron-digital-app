@@ -2,7 +2,9 @@ import { contextBridge } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
 
 // Custom APIs for renderer
-const api = {};
+const api = {
+  tcpConnectState: false
+};
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -11,6 +13,10 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI);
     contextBridge.exposeInMainWorld('api', api);
+    electronAPI.ipcRenderer.on('mes:tcp:connect', () => {
+      api.tcpConnectState = true;
+      electronAPI.ipcRenderer.send('mes:tcp:connect', api.tcpConnectState);
+    });
   } catch (error) {
     console.error(error);
   }

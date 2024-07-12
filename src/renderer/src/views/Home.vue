@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { onMounted, ref } from 'vue';
+
 const sendMessage = ref('');
-const isConnect = ref(false);
+const isConnect = ref(window.api.tcpConnectState);
 const router = useRouter();
 
 function ipcHandle() {
@@ -12,17 +13,8 @@ function onVersionClick() {
   router.push({ path: '/version' });
 }
 async function selectSerial() {
-  try {
-    await (window.navigator as any).serial.requestPort();
-  } catch (ex: any) {
-    if (ex.name === 'NotFoundError') {
-      console.log('No device found');
-      // document.getElementById('device-name').innerHTML = 'Device NOT found';
-    } else {
-      console.log(ex);
-      // document.getElementById('device-name').innerHTML = ex;
-    }
-  }
+  const serialPortList = await window.electron.ipcRenderer.invoke('serial:port:list');
+  console.log(serialPortList);
 }
 async function onSendMessage() {
   if (!sendMessage.value.trim()) return;
@@ -43,15 +35,15 @@ async function mesTcpClick() {
 }
 
 onMounted(async () => {
-  const state = await window.electron.ipcRenderer
-    .invoke('mes:tcp:test')
-    .catch((err) => console.log(err));
-  if (state) {
-    isConnect.value = state;
-  }
-  console.log(state);
+  window.electron.ipcRenderer.on('serial:port:data', (_event, message: string) => {
+    console.log(message);
+  });
+
   window.electron.ipcRenderer.on('mes:tcp:connect', () => {
     isConnect.value = true;
+  });
+  window.electron.ipcRenderer.on('mes:tcp:error', () => {
+    isConnect.value = false;
   });
   window.electron.ipcRenderer.on('mes:tcp:close', () => {
     isConnect.value = false;
