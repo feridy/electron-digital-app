@@ -13,7 +13,7 @@ import {
 import { assetPath } from './asset-path';
 import { defaultModelFetcher } from './default-model-fetcher';
 
-ortInstance.env.wasm.wasmPaths = '/';
+ortInstance.env.wasm.wasmPaths = './';
 
 interface RealTimeVADCallbacks {
   /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
