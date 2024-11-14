@@ -104,9 +104,42 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-background);
+  // background-color: var(--color-background);
   color: var(--color-text);
-  background-image: url('../assets/wavy-lines.svg');
-  background-size: cover;
-  min-height: 100vh;
+  background: transparent;
+  // background-image: url('../assets/wavy-lines.svg');
+  // background-size: cover;
+  // min-height: 100vh;
+}
+
+#app {
+  position: relative;
+  max-width: 1080px;
+  max-height: 1920px;
+  margin: auto;
+}
+
+@media screen and (min-width: 1080px) {
+  #app {
+    max-width: 1080px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #333;
+    color: white;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    background: #ddd;
+    color: black;
+  }
+}
+
+@font-face {
+  font-family: 'qiji-combo';
+  src: url('../assets/fonts/qiji-combo.ttf');
 }

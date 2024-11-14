@@ -14,10 +14,6 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI);
     contextBridge.exposeInMainWorld('api', api);
-    electronAPI.ipcRenderer.on('mes:tcp:connect', () => {
-      api.tcpConnectState = true;
-      electronAPI.ipcRenderer.send('mes:tcp:connect', api.tcpConnectState);
-    });
   } catch (error) {
     console.error(error);
   }

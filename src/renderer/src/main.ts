@@ -2,14 +2,16 @@ import './styles/index.scss';
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import { router } from './routers';
-import log from 'electron-log/renderer';
+// import log from 'electron-log/renderer';
 import App from './App.vue';
+import 'swiper/css';
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
 
 const store = createPinia();
 
 createApp(App).use(router).use(store).mount('#app');
-const newLog = log.scope('Render');
-Object.assign(console, newLog);
+
 document.addEventListener('DOMContentLoaded', () => {
-  newLog.info('Renderer Process loaded');
+  console.log('-------Render Process Run--------');
 });

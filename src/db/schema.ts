@@ -4,3 +4,5 @@ export const posts = sqliteTable('posts', {
   id: int('id').primaryKey({ autoIncrement: true }).default(1),
   title: text('title').notNull().default('')
 });
+
+// 相关配置信息表

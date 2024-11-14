@@ -1,18 +1,18 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
-import { connectMesSocket } from './net';
-import { initSerialHandler } from './port';
-import { initMainLog } from '../log/mainLog';
+import { initMainLog } from '../log';
 import icon from '../../resources/icon.png?asset';
+// import { mspLogin, vwSessionBegin } from './msc';
 
+// 初始化log文件
 const log = initMainLog();
 
 async function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1080,
+    height: 1920,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -35,9 +35,13 @@ async function createWindow() {
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+    mainWindow.webContents.openDevTools({ mode: 'right' });
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  // mspLogin();
+  // vwSessionBegin();
 
   return mainWindow;
 }
@@ -59,18 +63,13 @@ app.whenReady().then(async () => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'));
 
-  const mainWindow = await createWindow();
+  await createWindow();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
-
-  // MES TCP
-  connectMesSocket('192.168.7.36', 3000, mainWindow, ipcMain);
-  // SerialPort
-  initSerialHandler(mainWindow, ipcMain);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

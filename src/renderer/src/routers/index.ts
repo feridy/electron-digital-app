@@ -1,6 +1,5 @@
 import { createWebHashHistory, createRouter } from 'vue-router';
-import HomePage from '@renderer/views/Home.vue';
-import VersionPage from '@renderer/views/VersionPage.vue';
+import HomePage from '../views/Home.vue';
 
 const routes = [
   {
@@ -9,16 +8,6 @@ const routes = [
     component: HomePage,
     meta: {
       title: 'Home page',
-      enterActiveClass: 'animate__zoomIn',
-      leaveActiveClass: 'animate__zoomOut'
-    }
-  },
-  {
-    path: '/version',
-    name: 'Version page',
-    component: VersionPage,
-    meta: {
-      title: 'Version page',
       enterActiveClass: 'animate__zoomIn',
       leaveActiveClass: 'animate__zoomOut'
     }

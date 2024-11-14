@@ -8,7 +8,9 @@
   ],
   "compilerOptions": {
     "composite": true,
+    "noEmit": false,
     "baseUrl": ".",
+    "noImplicitThis": false,
     "paths": {
       "@renderer/*": [
         "src/renderer/src/*"
