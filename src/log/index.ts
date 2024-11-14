@@ -9,7 +9,7 @@ export function initMainLog() {
   log.transports.file.archiveLogFn = (file) => {
     const info = path.parse(file.path);
     const fileState = fs.statSync(file.path);
-    const date = dayjs(fileState.ctime).format('YYYY-MM-DD HH-mm-ss');
+    const date = dayjs(fileState.ctime).format('YYYY-MM-DD');
 
     fs.ensureFileSync(`${info.dir}/${date}.log`);
 
@@ -17,12 +17,8 @@ export function initMainLog() {
   };
 
   // 自定义日志的保存位置
-  log.transports.file.resolvePathFn = (variables) => {
-    return path.join(
-      process.cwd(),
-      './logs',
-      variables.fileName || `${dayjs().format('YYYY-MM-DD HH:mm:ss')}.log`
-    );
+  log.transports.file.resolvePathFn = () => {
+    return path.join(process.cwd(), './logs', `${dayjs().format('YYYY-MM-DD')}.log`);
   };
 
   const mainLog = log.scope('Main');
