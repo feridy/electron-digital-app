@@ -24,14 +24,13 @@ export async function useVAD(
   let resultTextTemp = '';
   let iatWS: WebSocket | null = null;
   let isSpeaking = false;
-  let completeTimeId = -1;
-  let redemptionCounter = -1;
-  const endTimeId = -1;
   const maxRecordingTime = 40 * 1000;
-  // const canReStart = true;
-  // const minSpeechFrames = 8;
-  const audioBuffer: Float32Array[] = [];
-  let isNotActive = false;
+  const preSpeechPadFrames = 2;
+  const minSpeechFrames = 3;
+  // 统计时间，一次最多能进行60秒的录音
+  let speechStartTime = 0;
+  let timerId;
+  let startWs = false;
 
   /**
    * 新增唤醒功能，主要在一段音频结束的时候进行语音转文字，然后进行文本内容配置验证关键字的权重。
@@ -39,88 +38,89 @@ export async function useVAD(
   const STATUS_RECORD = {
     isVW: false // 是否已经唤醒
   };
-  // 计算时间间隔
-  // let startTime = Date.now();
 
   const micVAD = await MicVAD.new({
     stream,
-    submitUserSpeechOnPause: false,
+    submitUserSpeechOnPause: true,
     positiveSpeechThreshold: 0.9,
     negativeSpeechThreshold: 0.1,
-    // minSpeechFrames: 2,
-    preSpeechPadFrames: 4,
-    onSpeechStart(frame) {
-      if (frame) {
-        const maxValue = Math.max(...frame);
-        console.log(maxValue * 100);
-        if (maxValue * 100 < 10) {
-          return;
-        }
-      }
-
-      window.clearTimeout(endTimeId);
-      onStart?.();
-      // onStart?.();
-      // audioBuffer.length = 0;
-      console.log('收到了声音的输入信号');
+    minSpeechFrames,
+    preSpeechPadFrames,
+    // 有声音输入时触发的方法
+    onSpeechStart() {
+      console.log('VAD，检测到了声音的输入');
       isSpeaking = true;
-      isNotActive = false;
       createWS();
-      window.clearTimeout(completeTimeId);
-      completeTimeId = window.setTimeout(() => {
-        // micVAD.pause();
-        iatWS?.close();
-        iatWS = null;
-        isSpeaking = false;
-      }, maxRecordingTime);
-    },
-    onFrameProcessed(probabilities, frame) {
-      if (probabilities.isSpeech) {
-        console.log(frame.length);
-      }
-      // 实时的进行音频流的保存
-      // if (frame) {
-      //   audioBuffer.push(frame);
-      // }
-      if (isSpeaking) {
-        if (iatWS?.readyState === WebSocket.OPEN && STATUS_RECORD.isVW) {
-          // const audio = concatArrays(audioBuffer);
-          // audioBuffer.length = 0;
-          const buffer = encodePCM(frame, 16).buffer;
-          const pcm = utils.arrayBufferToBase64(buffer);
-          iatWS?.send(
-            JSON.stringify({
-              data: {
-                status: 1,
-                format: 'audio/L16;rate=16000',
-                encoding: 'raw',
-                audio: pcm
-              }
-            })
-          );
+      clearInterval(timerId);
+      speechStartTime = 0;
+      // 讲话的开始时间记录
+      timerId = setInterval(() => {
+        speechStartTime += 1;
+        if (speechStartTime >= maxRecordingTime) {
+          clearInterval(timerId);
+          micVAD.pause();
         }
-        redemptionCounter += 1;
-      } else {
-        // 没有讲话的时候，要保存最新的8帧的音频
-        const frames = audioBuffer.slice(-16);
-        audioBuffer.length = 0;
-        audioBuffer.push(...frames);
+      }, 1000);
+      onStart?.();
+      startWs = false;
+    },
+    // 每帧触发的事件
+    onFrameProcessed(_probabilities, frame, audioBuffer) {
+      console.log(frame.length);
+
+      if (isSpeaking) {
+        if (
+          (audioBuffer?.length || 0) >= minSpeechFrames &&
+          iatWS?.readyState === WebSocket.OPEN &&
+          STATUS_RECORD.isVW
+        ) {
+          // 初始的讲话功能，进行实时显示讲话的内容
+          if (audioBuffer && !startWs) {
+            const audioData = concatArrays(audioBuffer.map((item) => item.frame));
+            const buffer = encodePCM(audioData, 16).buffer;
+            const pcm = utils.arrayBufferToBase64(buffer);
+            iatWS?.send(
+              JSON.stringify({
+                data: {
+                  status: 1,
+                  format: 'audio/L16;rate=16000',
+                  encoding: 'raw',
+                  audio: pcm
+                }
+              })
+            );
+            startWs = true;
+          } else {
+            const buffer = encodePCM(frame, 16).buffer;
+            const pcm = utils.arrayBufferToBase64(buffer);
+            iatWS?.send(
+              JSON.stringify({
+                data: {
+                  status: 1,
+                  format: 'audio/L16;rate=16000',
+                  encoding: 'raw',
+                  audio: pcm
+                }
+              })
+            );
+          }
+        }
       }
     },
+    // 输入的帧数少于最小帧时，无效的录音处理
     onVADMisfire() {
       console.log('无效的声音输入');
       isSpeaking = false;
-      audioBuffer.length = 0;
       onVADMisfire?.();
-      isNotActive = true;
       iatWS?.close();
-      window.clearTimeout(completeTimeId);
-      window.clearTimeout(redemptionCounter);
     },
+    // 一段话说完后的状态
     onSpeechEnd(audioData) {
       console.log(STATUS_RECORD.isVW ? '一段音频结束' : '开始进行唤醒此检测');
+      isSpeaking = false;
+      micVAD.start();
       if (!STATUS_RECORD.isVW) {
-        audioBuffer.length = 0;
+        if (speechStartTime > 5) return;
         const buffer = encodePCM(audioData, 16).buffer;
         const pcm = utils.arrayBufferToBase64(buffer);
         // ws已经打开的状态
@@ -143,22 +143,18 @@ export async function useVAD(
         return;
       }
 
-      window.clearTimeout(completeTimeId);
-      redemptionCounter = 0;
-      // 最后一次进行一次校准，
-      // 结束时进行WS状态的改变
+      // 最后一次进行一次校准，结束时进行WS状态的改变，将整个录音文件进行转化
       if (iatWS?.readyState === WebSocket.OPEN) {
-        const audio = concatArrays(audioBuffer);
-        audioBuffer.length = 0;
-        const buffer = encodePCM(audio, 16).buffer;
+        const buffer = encodePCM(audioData, 16).buffer;
         const pcm = utils.arrayBufferToBase64(buffer);
+
         iatWS?.send(
           JSON.stringify({
             data: {
               status: 2,
               format: 'audio/L16;rate=16000',
-              encoding: 'raw',
-              audio: pcm
+              encoding: 'raw'
+              // audio: pcm
             }
           })
         );
@@ -168,7 +164,6 @@ export async function useVAD(
       if (iatWS?.readyState === WebSocket.CONNECTING) {
         return;
       }
-      isSpeaking = false;
     }
   });
 
@@ -265,25 +260,8 @@ export async function useVAD(
       }
     };
     iatWS?.send(JSON.stringify(params));
-    if (!isSpeaking && audioBuffer.length && !isNotActive) {
-      const audio = concatArrays(audioBuffer);
-      audioBuffer.length = 0;
-      const buffer = encodePCM(audio, 16).buffer;
-      const pcm = utils.arrayBufferToBase64(buffer);
-      iatWS?.send(
-        JSON.stringify({
-          data: {
-            status: 2,
-            format: 'audio/L16;rate=16000',
-            encoding: 'raw',
-            audio: pcm
-          }
-        })
-      );
-    }
   }
   function onClose() {
-    audioBuffer.length = 0;
     iatWS = null;
     isSpeaking = false;
     onEnd?.();

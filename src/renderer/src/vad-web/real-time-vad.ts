@@ -17,7 +17,11 @@ ortInstance.env.wasm.wasmPaths = '/';
 
 interface RealTimeVADCallbacks {
   /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
-  onFrameProcessed: (probabilities: SpeechProbabilities, frame: Float32Array) => any;
+  onFrameProcessed: (
+    probabilities: SpeechProbabilities,
+    frame: Float32Array,
+    audioBuffer?: { frame: Float32Array; isSpeech: boolean }[]
+  ) => any;
 
   /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
    * audio segment is smaller than `minSpeechFrames`.
@@ -73,7 +77,7 @@ export type RealTimeVADOptions = RealTimeVADOptionsWithStream | RealTimeVADOptio
 
 export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   ...defaultFrameProcessorOptions,
-  onFrameProcessed: (probabilities) => {},
+  onFrameProcessed: (_probabilities) => {},
   onVADMisfire: () => {
     log.debug('VAD misfire');
   },
@@ -252,11 +256,12 @@ export class AudioNodeVAD {
       probs: SpeechProbabilities;
       msg: Message;
       audio: Float32Array;
+      audioBuffer: { frame: Float32Array; isSpeech: boolean }[];
     }>,
     frame: Float32Array
   ) => {
-    if (ev.probs !== undefined) {
-      this.options.onFrameProcessed(ev.probs, frame);
+    if (ev.probs) {
+      this.options.onFrameProcessed(ev.probs, frame, ev.audioBuffer);
     }
     switch (ev.msg) {
       case Message.SpeechStart:

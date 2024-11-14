@@ -170,6 +170,7 @@ export class FrameProcessor implements FrameProcessorInterface {
     }
 
     const probs = await this.modelProcessFunc(frame);
+
     this.audioBuffer.push({
       frame,
       isSpeech: probs.isSpeech >= this.options.positiveSpeechThreshold
@@ -181,7 +182,7 @@ export class FrameProcessor implements FrameProcessorInterface {
 
     if (probs.isSpeech >= this.options.positiveSpeechThreshold && !this.speaking) {
       this.speaking = true;
-      return { probs, frame, msg: Message.SpeechStart };
+      return { probs, frame, msg: Message.SpeechStart, audioBuffer: this.audioBuffer };
     }
 
     if (
@@ -201,9 +202,9 @@ export class FrameProcessor implements FrameProcessorInterface {
 
       if (speechFrameCount >= this.options.minSpeechFrames) {
         const audio = concatArrays(audioBuffer.map((item) => item.frame));
-        return { probs, msg: Message.SpeechEnd, audio };
+        return { probs, msg: Message.SpeechEnd, audioBuffer: this.audioBuffer, audio };
       } else {
-        return { probs, msg: Message.VADMisfire, frame };
+        return { probs, msg: Message.VADMisfire, frame, audioBuffer: this.audioBuffer };
       }
     }
 
@@ -212,6 +213,6 @@ export class FrameProcessor implements FrameProcessorInterface {
         this.audioBuffer.shift();
       }
     }
-    return { probs, frame };
+    return { probs, frame, audioBuffer: this.audioBuffer };
   };
 }
