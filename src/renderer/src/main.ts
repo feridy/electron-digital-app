@@ -12,7 +12,7 @@ const store = createPinia();
 
 const renderLog = log.scope('Render');
 
-Object.assign(console, renderLog);
+import.meta.env.DEV ? null : Object.assign(console, renderLog);
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('-------Render Process Run--------');

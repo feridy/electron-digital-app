@@ -42,7 +42,7 @@ export async function useVAD(
   const micVAD = await MicVAD.new({
     stream,
     submitUserSpeechOnPause: true,
-    positiveSpeechThreshold: 0.9,
+    positiveSpeechThreshold: 0.92,
     negativeSpeechThreshold: 0.1,
     minSpeechFrames,
     preSpeechPadFrames,
@@ -56,12 +56,17 @@ export async function useVAD(
       // 讲话的开始时间记录
       timerId = setInterval(() => {
         speechStartTime += 1;
+        if (!STATUS_RECORD.isVW && speechStartTime > 10) {
+          clearInterval(timerId);
+          micVAD.pause();
+          return;
+        }
         if (speechStartTime >= maxRecordingTime) {
           clearInterval(timerId);
           micVAD.pause();
         }
       }, 1000);
-      onStart?.();
+
       startWs = false;
     },
     // 每帧触发的事件
@@ -113,12 +118,15 @@ export async function useVAD(
       isSpeaking = false;
       onVADMisfire?.();
       iatWS?.close();
+      clearInterval(timerId);
     },
     // 一段话说完后的状态
     onSpeechEnd(audioData) {
-      console.log(STATUS_RECORD.isVW ? '一段音频结束' : '开始进行唤醒此检测');
+      console.log('完成了一段音频的录音');
       isSpeaking = false;
       micVAD.start();
+      clearInterval(timerId);
+      // 没有唤醒前，检查唤醒
       if (!STATUS_RECORD.isVW) {
         if (speechStartTime > 5) return;
         const buffer = encodePCM(audioData, 16).buffer;
@@ -143,7 +151,7 @@ export async function useVAD(
         return;
       }
 
-      // 最后一次进行一次校准，结束时进行WS状态的改变，将整个录音文件进行转化
+      // 最后一次进行一次校准，结束时进行WS状态的改变，将整个录音文件进行转化，唤醒后，最后一次进行语音状态修改
       if (iatWS?.readyState === WebSocket.OPEN) {
         const buffer = encodePCM(audioData, 16).buffer;
         const pcm = utils.arrayBufferToBase64(buffer);
@@ -166,6 +174,10 @@ export async function useVAD(
       }
     }
   });
+
+  (micVAD as any).setWeakState = (state: boolean) => {
+    STATUS_RECORD.isVW = state;
+  };
 
   function renderResult(resultData: string) {
     // 识别结束
@@ -194,8 +206,13 @@ export async function useVAD(
     }
     if (jsonData.code === 0 && jsonData.data.status === 2) {
       iatWS?.close();
+      micVAD.pause();
+      setTimeout(() => {
+        onEnd?.();
+      }, 0);
     }
     if (jsonData.code !== 0) {
+      onEnd?.();
       iatWS?.close();
       console.error(jsonData);
     }
@@ -225,8 +242,10 @@ export async function useVAD(
 
       // 进行唤醒词匹配
       if (resultTextTemp && similar(resultTextTemp, import.meta.env.VITE_APP_V_WEEK_STR) > 98) {
-        STATUS_RECORD.isVW = true;
         console.log('唤醒成功');
+        iatWS?.close();
+        STATUS_RECORD.isVW = true;
+        return;
       }
       console.log(resultTextTemp || resultText || '');
     }
@@ -239,8 +258,19 @@ export async function useVAD(
     }
   }
   let wsTimeOutId = -1;
+  let hasMessage = false;
+  let timeout;
   function onOpen() {
     clearTimeout(wsTimeOutId);
+    hasMessage = false;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      if (!hasMessage) {
+        iatWS?.close();
+        message.error('语音输入失败了，您可以在次提问试试。');
+        console.log('语音转文本超时了');
+      }
+    }, 10000);
     const params = {
       common: {
         app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -260,11 +290,14 @@ export async function useVAD(
       }
     };
     iatWS?.send(JSON.stringify(params));
+    if (STATUS_RECORD.isVW) {
+      onStart?.();
+    }
   }
   function onClose() {
     iatWS = null;
     isSpeaking = false;
-    onEnd?.();
+    clearTimeout(timeout);
     clearTimeout(wsTimeOutId);
   }
   function createWS() {
@@ -277,8 +310,14 @@ export async function useVAD(
       iatWS.onerror = (e) => {
         iatWS = null;
         console.log(e);
+        clearTimeout(timeout);
+        clearTimeout(timerId);
+        micVAD.start();
       };
       iatWS.onmessage = (evt) => {
+        clearTimeout(timeout);
+        clearTimeout(timerId);
+        hasMessage = true;
         // 如果已经完成了唤醒，就进行问题的语音转换，否则就进行语音唤醒检查
         if (STATUS_RECORD.isVW) {
           renderResult(evt.data);
@@ -293,6 +332,7 @@ export async function useVAD(
           onEnd?.();
           iatWS = null;
           isSpeaking = false;
+          micVAD.start();
           message.error('语音输入失败了，您可以在次提问试试。');
           console.log('语音转文本超时了');
         }
@@ -387,14 +427,6 @@ function transF32ToS16(input: Float32Array) {
     tmpData.push(d);
   }
   return new Int16Array(tmpData);
-}
-
-async function hashString(message: string) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

@@ -1,11 +1,10 @@
-// @ts-ignore
 import { unreachable } from 'devlop';
-import { toJsxRuntime, Components } from 'hast-util-to-jsx-runtime';
+import { toJsxRuntime, type Components } from 'hast-util-to-jsx-runtime';
 // import { Component } from 'hast-util-to-jsx-runtime/lib/components';
 import { urlAttributes } from 'html-url-attributes';
 import remarkParse from 'remark-parse';
-import remarkRehype, { Options as RemarkRehypeOptions } from 'remark-rehype';
-import { unified, PluggableList } from 'unified';
+import remarkRehype, { type Options as RemarkRehypeOptions } from 'remark-rehype';
+import { unified, type PluggableList } from 'unified';
 import { visit } from 'unist-util-visit';
 import { VFile } from 'vfile';
 import { Fragment, jsx } from 'vue/jsx-runtime';
@@ -15,9 +14,9 @@ import RemarkBreaks from 'remark-breaks';
 import RehypeKatex from 'rehype-katex';
 import RemarkGfm from 'remark-gfm';
 import RehypeHighlight from 'rehype-highlight';
-import { defineComponent } from 'vue';
+import { defineComponent, ref, watchEffect } from 'vue';
 
-const emptyPlugins = [];
+const emptyPlugins: any[] = [];
 
 const emptyRemarkRehypeOptions = { allowDangerousHtml: true };
 const safeProtocol = /^(https?|ircs?|mailto|xmpp)$/i;
@@ -309,7 +308,11 @@ function escapeDollarNumber(text: string) {
 const MarkdownComponent = defineComponent({
   props: ['content'],
   setup: (props: MarkdownComponentProps) => {
-    const escapedContent = escapeBrackets(escapeDollarNumber(props.content));
+    const escapedContent = ref('');
+
+    watchEffect(() => {
+      escapedContent.value = escapeBrackets(escapeDollarNumber(props.content));
+    });
 
     return () => (
       <Markdown
@@ -324,7 +327,7 @@ const MarkdownComponent = defineComponent({
             }
           ]
         ]}
-        children={escapedContent}
+        children={escapedContent.value}
       />
     );
   }

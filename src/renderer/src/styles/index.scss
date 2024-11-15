@@ -11,6 +11,10 @@
   --color-gray-1: #515c67;
   --color-gray-2: #414853;
   --color-gray-3: #32363f;
+
+  --bg-color: #000;
+  --color-text: #fff;
+  --command-text-color: #fff9cb;
 }
 
 *,
@@ -114,28 +118,21 @@ body {
 
 #app {
   position: relative;
-  max-width: 1080px;
-  max-height: 1920px;
-  margin: auto;
-}
 
-@media screen and (min-width: 1080px) {
-  #app {
-    max-width: 1080px;
-  }
+  margin: auto;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: #333;
+    background-color: black;
     color: white;
   }
 }
 
 @media (prefers-color-scheme: light) {
   body {
-    background: #ddd;
-    color: black;
+    background-color: black;
+    color: #fff;
   }
 }
 

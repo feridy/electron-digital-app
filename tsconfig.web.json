@@ -9,6 +9,8 @@
   "compilerOptions": {
     "composite": true,
     "noEmit": false,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "baseUrl": ".",
     "noImplicitThis": false,
     "paths": {

@@ -156,6 +156,11 @@ export class MicVAD {
     this.audioNodeVAD.destroy();
     this.audioContext.close();
   };
+
+  submitUserSpeech = () => {
+    const ev = this.audioNodeVAD.frameProcessor.endSegment();
+    this.audioNodeVAD.handleFrameProcessorEvent(ev, new Float32Array());
+  };
 }
 
 export class AudioNodeVAD {
@@ -229,7 +234,7 @@ export class AudioNodeVAD {
   constructor(
     public ctx: AudioContext,
     public options: RealTimeVADOptions,
-    private frameProcessor: FrameProcessor,
+    public frameProcessor: FrameProcessor,
     private entryNode: AudioWorkletNode
   ) {}
 
