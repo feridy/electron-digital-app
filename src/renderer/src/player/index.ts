@@ -80,6 +80,8 @@ type AudioPlayerEventMap = {
   };
 };
 
+const audioSources = new Map<HTMLAudioElement, MediaElementAudioSourceNode>();
+
 export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
   ws?: WebSocket;
   // tts转换回来的音频数据的列表
@@ -382,8 +384,14 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
     if (this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
     }
-    const audioSource = this.audioContext.createMediaElementSource(audioEl);
-    audioSource.connect(this.audioContext.destination);
+
+    let audioSource = audioSources.get(audioEl);
+    if (!audioSource) {
+      audioSource = this.audioContext.createMediaElementSource(audioEl);
+      audioSource.connect(this.audioContext.destination);
+      audioSources.set(audioEl, audioSource);
+    }
+
     this.lipsync.start(audioSource);
 
     this.dispatchEvent({
@@ -392,10 +400,17 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
 
     audioEl.onended = async () => {
       this.lipsync.stop();
+      audioSource.disconnect();
+      this.dispatchEvent({
+        type: AudioPlayerEventKey.AudioStop
+      });
       // await this.audioContext.suspend();
     };
     audioEl.onpause = async () => {
       this.lipsync.stop();
+      this.dispatchEvent({
+        type: AudioPlayerEventKey.AudioStop
+      });
     };
 
     await audioEl.play();

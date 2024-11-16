@@ -10,14 +10,17 @@ import { MicVAD } from '@renderer/vad-web';
 import { useStore } from '@renderer/stores';
 import { AudioPlayerEventKey } from '../player';
 import BScroll from '@better-scroll/core';
+import { useRouter } from 'vue-router';
 
 let vad: MicVAD | null = null;
+const router = useRouter();
 const elRef = ref<HTMLDivElement>();
 const scrollEl = ref<HTMLDivElement>();
 const store = useStore();
 const isStartSpeaking = ref(false);
 const showAnswer = ref(false);
 const commandText = ref('');
+const audioRef = ref<HTMLAudioElement>();
 const actions: Record<string, THREE.AnimationAction> = {};
 const needWeakSpaceTime = 20; //20s后就需要重新唤醒，要重置唤醒状态
 let bScroll: BScroll;
@@ -170,13 +173,8 @@ watch(
     clearTimeout(closeTimeId);
     // 延时2s，关闭回答的界面
     if (isHandleCompleted) {
-      clearTimeout(resetTimeout);
       closeTimeId = setTimeout(() => {
         showAnswer.value = false;
-        resetTimeout = setTimeout(() => {
-          store.reset();
-          (vad as any)?.setWeakState(false);
-        }, needWeakSpaceTime * 1000);
       }, 3000);
     }
   }
@@ -185,6 +183,7 @@ watch(
 onMounted(async () => {
   try {
     let sendCommandTimeId;
+    let count = 0;
     await initHuman();
     vad = await useVAD(
       () => {
@@ -195,7 +194,6 @@ onMounted(async () => {
       },
       (text) => {
         commandText.value = text;
-        clearTimeout(resetTimeout);
       },
       () => {
         clearInterval(sendCommandTimeId);
@@ -212,6 +210,10 @@ onMounted(async () => {
       },
       () => {
         isStartSpeaking.value = false;
+      },
+      () => {
+        store.audioPlayer.playAudioEl(audioRef.value!);
+        count = 0;
       }
     );
     vad.start();
@@ -219,6 +221,24 @@ onMounted(async () => {
     store.humanLoadSuccess();
     (store.audioPlayer as any).addEventListener(AudioPlayerEventKey.AudioPlay, onAudioPay);
     (store.audioPlayer as any).addEventListener(AudioPlayerEventKey.AudioStop, onAudioPause);
+
+    resetTimeout = setInterval(() => {
+      if (count >= needWeakSpaceTime) {
+        count = 0;
+        if (
+          !showAnswer.value &&
+          !isStartSpeaking.value &&
+          !store.isHandling &&
+          (vad as any).getWeakState()
+        ) {
+          console.log('--------需要重新进行唤醒--------');
+          store.reset();
+          (vad as any)?.setWeakState(false);
+        }
+        return;
+      }
+      count += 1;
+    }, 1000);
   } catch (error) {
     console.log(error);
   }
@@ -230,6 +250,7 @@ onUnmounted(() => {
   scene?.removeFromParent();
   mixer?.stopAllAction();
   store.reset();
+  clearInterval(resetTimeout);
   window.removeEventListener('resize', handleResize);
   (store.audioPlayer as any).removeEventListener(AudioPlayerEventKey.AudioPlay, onAudioPay);
   (store.audioPlayer as any).removeEventListener(AudioPlayerEventKey.AudioStop, onAudioPause);
@@ -260,6 +281,8 @@ onUnmounted(() => {
         </div>
       </div>
     </Transition>
+    <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" />
+    <div class="change-button" @click="router.push('/video')">切换到视频页面</div>
   </div>
 </template>
 
@@ -337,5 +360,14 @@ onUnmounted(() => {
       line-height: 1.4;
     }
   }
+}
+.change-button {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 180px;
+  color: #000;
+  background-color: #fff9cb;
 }
 </style>

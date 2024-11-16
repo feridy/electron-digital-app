@@ -131,13 +131,14 @@ export const useStore = defineStore('pageStore', () => {
           robotChatMessage.message = '问答服务请求已经超时了，请稍后再试';
           showAiAnswer.value = '问答服务请求已经超时了，请稍后再试';
         }
+        audioPlayer.value.sendWsText(showAiAnswer.value, true);
         robotChatMessage.isLoading = false;
         ChatControllerPool.remove(sessionId, hashCode);
         currentAnswerSessionId.value = '';
         robotChatMessage.isAudioEnd = true;
         isGetChatMessageStreamFinish.value = true;
-        vadInstance.value?.start();
-        isHandling.value = false;
+        // vadInstance.value?.start();
+        // isHandling.value = false;
         console.error('[Chat] failed ', error);
       },
       onUpdate(message) {
@@ -219,11 +220,12 @@ export const useStore = defineStore('pageStore', () => {
       startTime = Date.now();
       // 对于最新的问答会话方式的展示问答
       const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-      robotChatMessage.isLoading = false;
-      isHandling.value = false;
+      if (robotChatMessage) {
+        robotChatMessage.isLoading = false;
+        isHandling.value = false;
+      }
     });
     audioPlayer.value.addEventListener(AudioPlayerEventKey.AudioStop, () => {
-      if (audioPlayer.value.isRest) return;
       setTimeout(() => {
         if (!postAudio.value.length) {
           console.log('播放的音频中断');
@@ -233,10 +235,12 @@ export const useStore = defineStore('pageStore', () => {
           showAiAnswer.value = getChatAnswer.value;
           // 对于最新的问答会话方式的展示问答
           const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-          robotChatMessage.message = showAiAnswer.value;
-          robotChatMessage.isAudioEnd = true;
-          isHandleCompleted.value = true;
-          currentAnswerSessionId.value = '';
+          if (robotChatMessage) {
+            robotChatMessage.message = showAiAnswer.value;
+            robotChatMessage.isAudioEnd = true;
+            isHandleCompleted.value = true;
+            currentAnswerSessionId.value = '';
+          }
         }
       }, 0);
     });
@@ -247,10 +251,12 @@ export const useStore = defineStore('pageStore', () => {
         showAiAnswer.value = getChatAnswer.value.slice(0, answerTextIndex.value);
         // 对于最新的问答会话方式的展示问答
         const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-        robotChatMessage.isLoading = false;
-        robotChatMessage.message = showAiAnswer.value;
-        answerTextIndex.value += 1;
-        diff = 0;
+        if (robotChatMessage) {
+          robotChatMessage.isLoading = false;
+          robotChatMessage.message = showAiAnswer.value;
+          answerTextIndex.value += 1;
+          diff = 0;
+        }
       }
       startTime = currentTime;
     });

@@ -7,7 +7,8 @@ export async function useVAD(
   onStart?: () => void,
   onUpdate?: (resultText: string) => void,
   onEnd?: () => void,
-  onVADMisfire?: () => void
+  onVADMisfire?: () => void,
+  onWeakUp?: () => void
 ) {
   if (!window.navigator.mediaDevices) {
     throw new Error('MediaDevices is not supported');
@@ -114,11 +115,12 @@ export async function useVAD(
     },
     // 输入的帧数少于最小帧时，无效的录音处理
     onVADMisfire() {
-      console.log('无效的声音输入');
       isSpeaking = false;
+      console.log('无效的声音输入');
+      clearInterval(timerId);
+      micVAD.start();
       onVADMisfire?.();
       iatWS?.close();
-      clearInterval(timerId);
     },
     // 一段话说完后的状态
     onSpeechEnd(audioData) {
@@ -178,6 +180,7 @@ export async function useVAD(
   (micVAD as any).setWeakState = (state: boolean) => {
     STATUS_RECORD.isVW = state;
   };
+  (micVAD as any).getWeakState = () => STATUS_RECORD.isVW;
 
   function renderResult(resultData: string) {
     // 识别结束
@@ -245,6 +248,7 @@ export async function useVAD(
         console.log('唤醒成功');
         iatWS?.close();
         STATUS_RECORD.isVW = true;
+        onWeakUp?.();
         return;
       }
       console.log(resultTextTemp || resultText || '');
