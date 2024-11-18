@@ -1,7 +1,7 @@
 import { MicVAD, utils } from '../vad-web';
 import { enc, HmacSHA256 } from 'crypto-js';
 // import { downloadWAV } from './audioPlayer';
-import { message } from 'ant-design-vue';
+// import { message } from 'ant-design-vue';
 
 export async function useVAD(
   onStart?: () => void,
@@ -25,12 +25,11 @@ export async function useVAD(
   let resultTextTemp = '';
   let iatWS: WebSocket | null = null;
   let isSpeaking = false;
-  const maxRecordingTime = 20 * 1000;
+  const maxRecordingTime = 20;
   const preSpeechPadFrames = 2;
   const minSpeechFrames = 3;
   // 统计时间，一次最多能进行60秒的录音
   let speechStartTime = 0;
-  let timerId;
   let startWs = false;
 
   /**
@@ -49,28 +48,9 @@ export async function useVAD(
     preSpeechPadFrames,
     // 有声音输入时触发的方法
     onSpeechStart() {
-      console.log('VAD，检测到了声音的输入');
+      console.log('VAD Speech START');
       isSpeaking = true;
-      clearInterval(timerId);
       speechStartTime = 0;
-      // 讲话的开始时间记录
-      timerId = setInterval(() => {
-        speechStartTime += 1;
-        if (!STATUS_RECORD.isVW && speechStartTime >= 3) {
-          clearInterval(timerId);
-          micVAD.pause();
-          return;
-        }
-        if (speechStartTime >= maxRecordingTime) {
-          clearInterval(timerId);
-          micVAD.pause();
-        }
-      }, 1000);
-
-      if (STATUS_RECORD.isVW) {
-        createWS();
-      }
-
       startWs = false;
     },
     // 每帧触发的事件
@@ -78,40 +58,87 @@ export async function useVAD(
       console.log(frame.length);
 
       if (isSpeaking) {
-        if (
-          (audioBuffer?.length || 0) >= minSpeechFrames &&
-          iatWS?.readyState === WebSocket.OPEN &&
-          STATUS_RECORD.isVW
-        ) {
+        if ((audioBuffer?.length || 0) >= minSpeechFrames && STATUS_RECORD.isVW) {
           // 初始的讲话功能，进行实时显示讲话的内容
           if (audioBuffer && !startWs) {
             const audioData = concatArrays(audioBuffer.map((item) => item.frame));
             const buffer = encodePCM(audioData, 16).buffer;
             const pcm = utils.arrayBufferToBase64(buffer);
-            iatWS?.send(
-              JSON.stringify({
+            createWS();
+            iatWS!.onopen = () => {
+              clearTimeout(wsTimeOutId);
+              hasMessage = false;
+              const params = {
+                common: {
+                  app_id: import.meta.env.VITE_APP_ARS_APP_ID
+                },
+                business: {
+                  language: 'zh_cn',
+                  domain: 'iat',
+                  accent: 'mandarin',
+                  vad_eos: 5000,
+                  dwa: 'wpgs'
+                  // ptt: 0
+                },
                 data: {
                   status: 1,
                   format: 'audio/L16;rate=16000',
                   encoding: 'raw',
                   audio: pcm
                 }
-              })
-            );
+              };
+              iatWS?.send(JSON.stringify(params));
+              if (STATUS_RECORD.isVW) {
+                onStart?.();
+              }
+            };
             startWs = true;
           } else {
-            const buffer = encodePCM(frame, 16).buffer;
-            const pcm = utils.arrayBufferToBase64(buffer);
-            iatWS?.send(
-              JSON.stringify({
-                data: {
-                  status: 1,
-                  format: 'audio/L16;rate=16000',
-                  encoding: 'raw',
-                  audio: pcm
+            if (iatWS?.readyState === WebSocket.OPEN) {
+              const buffer = encodePCM(frame, 16).buffer;
+              const pcm = utils.arrayBufferToBase64(buffer);
+              iatWS?.send(
+                JSON.stringify({
+                  data: {
+                    status: 1,
+                    format: 'audio/L16;rate=16000',
+                    encoding: 'raw',
+                    audio: pcm
+                  }
+                })
+              );
+            } else if (iatWS?.readyState === WebSocket.CONNECTING) {
+              const audioData = concatArrays(audioBuffer!.map((item) => item.frame));
+              const buffer = encodePCM(audioData, 16).buffer;
+              const pcm = utils.arrayBufferToBase64(buffer);
+              iatWS!.onopen = () => {
+                clearTimeout(wsTimeOutId);
+                hasMessage = false;
+                const params = {
+                  common: {
+                    app_id: import.meta.env.VITE_APP_ARS_APP_ID
+                  },
+                  business: {
+                    language: 'zh_cn',
+                    domain: 'iat',
+                    accent: 'mandarin',
+                    vad_eos: 5000,
+                    dwa: 'wpgs'
+                    // ptt: 0
+                  },
+                  data: {
+                    status: 1,
+                    format: 'audio/L16;rate=16000',
+                    encoding: 'raw',
+                    audio: pcm
+                  }
+                };
+                iatWS?.send(JSON.stringify(params));
+                if (STATUS_RECORD.isVW) {
+                  onStart?.();
                 }
-              })
-            );
+              };
+            }
           }
         }
       }
@@ -119,18 +146,18 @@ export async function useVAD(
     // 输入的帧数少于最小帧时，无效的录音处理
     onVADMisfire() {
       isSpeaking = false;
-      console.log('无效的声音输入');
-      clearInterval(timerId);
+      console.log('VAD Speech Misfire');
       micVAD.start();
       onVADMisfire?.();
       iatWS?.close();
+      speechStartTime = 0;
     },
     // 一段话说完后的状态
     onSpeechEnd(audioData) {
-      console.log('完成了一段音频的录音');
+      console.log('VAD Speech EDN');
       isSpeaking = false;
+      speechStartTime = 0;
       micVAD.start();
-      clearInterval(timerId);
       // 没有唤醒前，检查唤醒
       if (!STATUS_RECORD.isVW) {
         if (speechStartTime > 5) return;
@@ -140,14 +167,7 @@ export async function useVAD(
         iatWS!.onopen = () => {
           clearTimeout(wsTimeOutId);
           hasMessage = false;
-          clearTimeout(timeout);
-          timeout = setTimeout(() => {
-            if (!hasMessage) {
-              iatWS?.close();
-              message.error('语音输入失败了，您可以在次提问试试。');
-              console.log('语音转文本超时了');
-            }
-          }, 10000);
+
           const params = {
             common: {
               app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -177,24 +197,15 @@ export async function useVAD(
 
       // 最后一次进行一次校准，结束时进行WS状态的改变，将整个录音文件进行转化，唤醒后，最后一次进行语音状态修改
       if (iatWS?.readyState === WebSocket.OPEN) {
-        const buffer = encodePCM(audioData, 16).buffer;
-        const pcm = utils.arrayBufferToBase64(buffer);
-
         iatWS?.send(
           JSON.stringify({
             data: {
               status: 2,
               format: 'audio/L16;rate=16000',
               encoding: 'raw'
-              // audio: pcm
             }
           })
         );
-      }
-
-      // 如果iatWS还在链接中时，还是保存正在播放的状态
-      if (iatWS?.readyState === WebSocket.CONNECTING) {
-        return;
       }
     }
   });
@@ -285,18 +296,10 @@ export async function useVAD(
   }
   let wsTimeOutId = -1;
   let hasMessage = false;
-  let timeout;
+  // let timeout;
   function onOpen() {
     clearTimeout(wsTimeOutId);
     hasMessage = false;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      if (!hasMessage) {
-        iatWS?.close();
-        message.error('语音输入失败了，您可以在次提问试试。');
-        console.log('语音转文本超时了');
-      }
-    }, 10000);
     const params = {
       common: {
         app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -322,8 +325,6 @@ export async function useVAD(
   }
   function onClose() {
     iatWS = null;
-    isSpeaking = false;
-    clearTimeout(timeout);
     clearTimeout(wsTimeOutId);
   }
   function createWS() {
@@ -335,15 +336,13 @@ export async function useVAD(
       iatWS.onclose = onClose;
       iatWS.onerror = (e) => {
         iatWS = null;
-        onEnd?.();
+        if (STATUS_RECORD.isVW) {
+          onEnd?.();
+        }
         console.log(e);
-        clearTimeout(timeout);
-        clearTimeout(timerId);
         micVAD.start();
       };
       iatWS.onmessage = (evt) => {
-        clearTimeout(timeout);
-        clearTimeout(timerId);
         hasMessage = true;
         // 如果已经完成了唤醒，就进行问题的语音转换，否则就进行语音唤醒检查
         if (STATUS_RECORD.isVW) {
@@ -353,19 +352,47 @@ export async function useVAD(
         }
       };
 
+      // 链接超时的处理
       wsTimeOutId = setTimeout(() => {
         if (iatWS?.readyState === WebSocket.CONNECTING) {
+          console.log('Connection timeout, closing WebSocket.');
+          iatWS.onopen = null;
+          iatWS.onmessage = null;
           iatWS.close();
-          onEnd?.();
-          iatWS = null;
-          isSpeaking = false;
           micVAD.start();
-          message.error('语音输入失败了，您可以在次提问试试。');
-          console.log('语音转文本超时了');
+          iatWS = null;
+          if (STATUS_RECORD.isVW) {
+            onEnd?.();
+          }
         }
       }, 5 * 1000) as any;
     }
   }
+
+  // 讲话的开始时间记录
+  const timerId = setInterval(() => {
+    if (isSpeaking) {
+      speechStartTime += 1;
+      console.log(speechStartTime);
+    }
+
+    if (!STATUS_RECORD.isVW && speechStartTime >= 3) {
+      speechStartTime = 0;
+      micVAD.pause();
+      return;
+    }
+    if (speechStartTime >= maxRecordingTime) {
+      speechStartTime = 0;
+      micVAD.pause();
+    }
+  }, 1000);
+
+  const oldDestroy = micVAD.destroy;
+
+  micVAD.destroy = () => {
+    oldDestroy();
+    clearInterval(timerId);
+  };
 
   return micVAD;
 }

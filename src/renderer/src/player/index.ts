@@ -404,7 +404,8 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       this.dispatchEvent({
         type: AudioPlayerEventKey.AudioStop
       });
-      // await this.audioContext.suspend();
+      await this.audioContext.suspend();
+      audioEl.currentTime = 0;
     };
     audioEl.onpause = async () => {
       this.lipsync.stop();

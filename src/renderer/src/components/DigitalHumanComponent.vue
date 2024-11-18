@@ -72,7 +72,7 @@ async function initHuman() {
 
   model.traverseVisible((item) => {
     if ((item as any).isMesh && item.name === 'tou_1') {
-      console.log(item);
+      // console.log(item);
       mesh = item as THREE.Mesh;
     }
   });
@@ -82,7 +82,7 @@ async function initHuman() {
       actions[item.name] = mixer.clipAction(item);
     });
 
-    console.log(gltf.animations);
+    // console.log(gltf.animations);
   }
 
   actions['daiji']?.play();
@@ -90,7 +90,7 @@ async function initHuman() {
   const environment = RoomEnvironment();
 
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmremGenerator.fromScene(environment, 0.5).texture;
+  scene.environment = pmremGenerator.fromScene(environment, 0.01).texture;
   scene.environmentIntensity = 0.2;
 
   el.appendChild(renderer.domElement);
@@ -111,12 +111,13 @@ async function initHuman() {
         const mouth = mesh.morphTargetDictionary?.['blendShape1.mouth'];
         const bizui = mesh.morphTargetDictionary?.['blendShape1.bizui'];
         if (mesh.morphTargetInfluences) {
+          // console.log(lipsync.blendShapes);
           mesh.morphTargetInfluences[mouth] = Number.isNaN(lipsync.blendShapes.blendShapeMouth)
             ? 0
-            : lipsync.blendShapes.blendShapeMouth + 0.1;
-          mesh.morphTargetInfluences[lips] = Number.isNaN(lipsync.blendShapes.blendShapeLips)
-            ? 0
             : lipsync.blendShapes.blendShapeLips;
+          mesh.morphTargetInfluences[lips] = Number.isNaN(lipsync.blendShapes.blendShapeKiss)
+            ? 0
+            : Math.max(lipsync.blendShapes.blendShapeKiss - 0.1, 0);
           mesh.morphTargetInfluences[kiss] = Number.isNaN(lipsync.blendShapes.blendShapeKiss)
             ? 0
             : lipsync.blendShapes.blendShapeKiss;
@@ -223,6 +224,9 @@ onMounted(async () => {
             store.sendMicText(commandText.value);
             isStartSpeaking.value = false;
             showAnswer.value = true;
+          } else {
+            vad?.start();
+            isStartSpeaking.value = false;
           }
           clearTimeout(closeTimeId);
         }, 1000);

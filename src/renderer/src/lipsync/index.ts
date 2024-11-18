@@ -106,7 +106,7 @@ export class LipSync {
       // _blendShapeKiss += energyBin[0] / 4;
 
       _blendShapeLips = Math.min(3 * energyBin[3] + energyBin[0], 1);
-      _blendShapeMouth = Math.min(2 * (energyBin[1] + energyBin[3]) - energyBin[0], 1);
+      _blendShapeMouth = Math.min(2 * (energyBin[1] + energyBin[3]) + energyBin[0] / 2, 1);
 
       this.energyBin = Array.from(energyBin);
 
