@@ -69,6 +69,7 @@
     "unist-util-visit": "^5.0.0",
     "uuid": "^10.0.0",
     "vfile": "^6.0.1",
+    "video.js": "^8.19.1",
     "vue-markdown-render": "^2.2.1",
     "vue-router": "^4.4.0",
     "wretch": "^2.9.0"

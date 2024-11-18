@@ -4,6 +4,7 @@ import { useVAD } from '../vad';
 import * as THREE from 'three';
 import { GLTFLoader, RoomEnvironment } from 'three-stdlib';
 import MarkdownComponent from './MarkdownComponent';
+import { AppstoreOutlined } from '@ant-design/icons-vue';
 // @ts-ignore
 import { MicVAD } from '@renderer/vad-web';
 // @ts-ignore
@@ -28,8 +29,10 @@ let scene: THREE.Scene;
 let renderer: THREE.WebGLRenderer;
 let mixer: THREE.AnimationMixer;
 let handleResize = () => {};
+const showVideoMenus = ref(false);
 let closeTimeId;
 let resetTimeout;
+let showVideoMenuTimeId;
 
 async function initHuman() {
   let clock: THREE.Clock;
@@ -110,7 +113,7 @@ async function initHuman() {
         if (mesh.morphTargetInfluences) {
           mesh.morphTargetInfluences[mouth] = Number.isNaN(lipsync.blendShapes.blendShapeMouth)
             ? 0
-            : lipsync.blendShapes.blendShapeMouth;
+            : lipsync.blendShapes.blendShapeMouth + 0.1;
           mesh.morphTargetInfluences[lips] = Number.isNaN(lipsync.blendShapes.blendShapeLips)
             ? 0
             : lipsync.blendShapes.blendShapeLips;
@@ -118,7 +121,7 @@ async function initHuman() {
             ? 0
             : lipsync.blendShapes.blendShapeKiss;
 
-          mesh.morphTargetInfluences[bizui] = 0.8;
+          mesh.morphTargetInfluences[bizui] = 0.9;
         }
       }
     } else if (!lipsync.isWorking && mesh) {
@@ -156,6 +159,18 @@ function onAudioPay() {}
 function onAudioPause() {}
 
 watch(
+  () => showVideoMenus.value,
+  (val) => {
+    if (val) {
+      clearTimeout(showVideoMenuTimeId);
+      showVideoMenuTimeId = setTimeout(() => {
+        showVideoMenus.value = false;
+      }, 2000);
+    }
+  }
+);
+
+watch(
   () => store.showAiAnswer,
   () => {
     nextTick(() => {
@@ -191,9 +206,11 @@ onMounted(async () => {
         commandText.value = '';
         showAnswer.value = false;
         clearInterval(sendCommandTimeId);
+        console.log('----有声音输入进来了----');
       },
       (text) => {
         commandText.value = text;
+        console.log('--------ARS语音转换TXT更新-------');
       },
       () => {
         clearInterval(sendCommandTimeId);
@@ -202,17 +219,22 @@ onMounted(async () => {
         sendCommandTimeId = setTimeout(() => {
           store.showAiAnswer = '您的问题正在处理中....';
           // 发送问题到问答平台
-          store.sendMicText(commandText.value);
-          isStartSpeaking.value = false;
-          showAnswer.value = true;
+          if (commandText.value) {
+            store.sendMicText(commandText.value);
+            isStartSpeaking.value = false;
+            showAnswer.value = true;
+          }
           clearTimeout(closeTimeId);
         }, 1000);
+        console.log('---------完成了一段语音的输入-----------');
       },
       () => {
         isStartSpeaking.value = false;
+        console.log('---------语音输入太短了------------');
       },
       () => {
         store.audioPlayer.playAudioEl(audioRef.value!);
+        console.log('--------唤醒成功后的回调执行----------');
         count = 0;
       }
     );
@@ -258,7 +280,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="digital-human">
+  <div class="digital-human" @mousemove="showVideoMenus = true">
     <div class="human" ref="elRef"></div>
     <Transition
       enter-active-class="animate__animated animate__fadeIn animate__faster"
@@ -282,7 +304,9 @@ onUnmounted(() => {
       </div>
     </Transition>
     <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" />
-    <div class="change-button" @click="router.push('/video')">切换到视频页面</div>
+    <div class="show-video-list" @click="router.push('/video')" v-if="showVideoMenus">
+      <AppstoreOutlined />
+    </div>
   </div>
 </template>
 
@@ -361,13 +385,17 @@ onUnmounted(() => {
     }
   }
 }
-.change-button {
+.show-video-list {
   position: absolute;
-  bottom: 0;
+  top: 0;
   right: 0;
-  width: 100%;
-  height: 180px;
-  color: #000;
-  background-color: #fff9cb;
+  width: 80px;
+  height: 80px;
+  color: #fff;
+  font-size: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
 }
 </style>

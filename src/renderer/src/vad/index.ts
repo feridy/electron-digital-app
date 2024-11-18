@@ -25,7 +25,7 @@ export async function useVAD(
   let resultTextTemp = '';
   let iatWS: WebSocket | null = null;
   let isSpeaking = false;
-  const maxRecordingTime = 40 * 1000;
+  const maxRecordingTime = 20 * 1000;
   const preSpeechPadFrames = 2;
   const minSpeechFrames = 3;
   // 统计时间，一次最多能进行60秒的录音
@@ -51,13 +51,12 @@ export async function useVAD(
     onSpeechStart() {
       console.log('VAD，检测到了声音的输入');
       isSpeaking = true;
-      createWS();
       clearInterval(timerId);
       speechStartTime = 0;
       // 讲话的开始时间记录
       timerId = setInterval(() => {
         speechStartTime += 1;
-        if (!STATUS_RECORD.isVW && speechStartTime > 10) {
+        if (!STATUS_RECORD.isVW && speechStartTime >= 3) {
           clearInterval(timerId);
           micVAD.pause();
           return;
@@ -67,6 +66,10 @@ export async function useVAD(
           micVAD.pause();
         }
       }, 1000);
+
+      if (STATUS_RECORD.isVW) {
+        createWS();
+      }
 
       startWs = false;
     },
@@ -133,23 +136,42 @@ export async function useVAD(
         if (speechStartTime > 5) return;
         const buffer = encodePCM(audioData, 16).buffer;
         const pcm = utils.arrayBufferToBase64(buffer);
-        // ws已经打开的状态
-        if (iatWS?.readyState === WebSocket.OPEN) {
-          iatWS?.send(
-            JSON.stringify({
-              data: {
-                status: 2,
-                format: 'audio/L16;rate=16000',
-                encoding: 'raw',
-                audio: pcm
-              }
-            })
-          );
-        } else if (iatWS && iatWS?.readyState === WebSocket.CONNECTING) {
-          iatWS.onopen = () => {
-            onOpen();
+        createWS();
+        iatWS!.onopen = () => {
+          clearTimeout(wsTimeOutId);
+          hasMessage = false;
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            if (!hasMessage) {
+              iatWS?.close();
+              message.error('语音输入失败了，您可以在次提问试试。');
+              console.log('语音转文本超时了');
+            }
+          }, 10000);
+          const params = {
+            common: {
+              app_id: import.meta.env.VITE_APP_ARS_APP_ID
+            },
+            business: {
+              language: 'zh_cn',
+              domain: 'iat',
+              accent: 'mandarin',
+              vad_eos: 5000,
+              dwa: 'wpgs'
+              // ptt: 0
+            },
+            data: {
+              status: 2,
+              format: 'audio/L16;rate=16000',
+              encoding: 'raw',
+              audio: pcm
+            }
           };
-        }
+          iatWS?.send(JSON.stringify(params));
+          if (STATUS_RECORD.isVW) {
+            onStart?.();
+          }
+        };
         return;
       }
 
@@ -313,6 +335,7 @@ export async function useVAD(
       iatWS.onclose = onClose;
       iatWS.onerror = (e) => {
         iatWS = null;
+        onEnd?.();
         console.log(e);
         clearTimeout(timeout);
         clearTimeout(timerId);

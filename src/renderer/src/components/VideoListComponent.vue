@@ -3,16 +3,57 @@
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import type { Swiper as SwiperClass } from 'swiper';
 import { Parallax, Controller, Autoplay } from 'swiper/modules';
+import { CloseOutlined, ArrowLeftOutlined } from '@ant-design/icons-vue';
 // Import Swiper styles
 import 'swiper/css';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import videojs from 'video.js';
+import 'video.js/dist/video-js.css';
 const controlledPrevSwiper = ref<SwiperClass>();
 const manSwiper = ref<SwiperClass>();
 const controlledNextSwiper = ref<SwiperClass>();
+const videoPlayer = ref<HTMLDivElement>();
+const router = useRouter();
+const playVideo = ref(false);
+const showBack = ref(false);
+let player;
+let timeId;
+
+function onPlayVideo(src: string) {
+  if (!player) {
+    player = videojs(videoPlayer.value!, {
+      autoplay: true,
+      loop: true,
+      controls: true
+    });
+  }
+  player.src(src);
+  player.play();
+
+  playVideo.value = true;
+}
+
+function onCloseVideo() {
+  player.pause();
+  playVideo.value = false;
+}
+
+watch(
+  () => showBack.value,
+  (val) => {
+    if (val) {
+      clearTimeout(timeId);
+      setTimeout(() => {
+        showBack.value = false;
+      }, 2000);
+    }
+  }
+);
 </script>
 
 <template>
-  <div class="video-list">
+  <div class="video-list" @mousemove="showBack = true">
     <div class="title"></div>
     <Swiper
       :speed="600"
@@ -33,6 +74,10 @@ const controlledNextSwiper = ref<SwiperClass>();
       "
     >
       <SwiperSlide>
+        <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
+        <div class="video-title">红四军特务连</div>
+      </SwiperSlide>
+      <SwiperSlide>
         <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
@@ -49,10 +94,6 @@ const controlledNextSwiper = ref<SwiperClass>();
       </SwiperSlide>
       <SwiperSlide>
         <img src="https://triple-slider.uiinitiative.com/images/spider-man.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
     </Swiper>
@@ -82,26 +123,26 @@ const controlledNextSwiper = ref<SwiperClass>();
         }
       "
     >
-      <SwiperSlide>
+      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
         <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
-      <SwiperSlide>
+      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
         <img
           src="https://triple-slider.uiinitiative.com/images/guardians-of-the-galaxy.jpg"
           alt=""
         />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
-      <SwiperSlide>
+      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
         <img src="https://triple-slider.uiinitiative.com/images/justice-league.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
-      <SwiperSlide>
+      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
         <img src="https://triple-slider.uiinitiative.com/images/spider-man.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
-      <SwiperSlide>
+      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
         <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
@@ -125,10 +166,6 @@ const controlledNextSwiper = ref<SwiperClass>();
       "
     >
       <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
         <img
           src="https://triple-slider.uiinitiative.com/images/guardians-of-the-galaxy.jpg"
           alt=""
@@ -147,7 +184,27 @@ const controlledNextSwiper = ref<SwiperClass>();
         <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
         <div class="video-title">红四军特务连</div>
       </SwiperSlide>
+      <SwiperSlide>
+        <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
+        <div class="video-title">红四军特务连</div>
+      </SwiperSlide>
     </Swiper>
+    <div class="video-wrapper" v-show="playVideo">
+      <video
+        class="video video-js"
+        ref="videoPlayer"
+        controlsList="nodownload"
+        playsinline
+        webkit-playsinline
+      />
+      <div class="close-button" @click="onCloseVideo" v-if="showBack">
+        <CloseOutlined />
+      </div>
+    </div>
+
+    <div class="back-button" @click="router.push('/')" v-if="showBack">
+      <ArrowLeftOutlined />
+    </div>
   </div>
 </template>
 
@@ -238,6 +295,53 @@ const controlledNextSwiper = ref<SwiperClass>();
     color: #fff;
     font-weight: 600;
     text-shadow: 1px 1px 1px #000;
+  }
+
+  .video-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: fill;
+    z-index: 9999;
+    .video {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      video {
+        object-fit: fill !important;
+      }
+    }
+  }
+
+  .back-button {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    left: 0;
+    width: 80px;
+    height: 80px;
+    font-size: 50px;
+    color: #fff;
+    z-index: 9;
+    cursor: pointer;
+  }
+
+  .close-button {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0px;
+    right: 0px;
+    width: 80px;
+    height: 80px;
+    font-size: 50px;
+    cursor: pointer;
+    color: #fff;
+    z-index: 9;
   }
 }
 </style>

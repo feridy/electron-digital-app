@@ -22,6 +22,10 @@ const routes = [
       enterActiveClass: 'animate__zoomIn',
       leaveActiveClass: 'animate__zoomOut'
     }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ];
 

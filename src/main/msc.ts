@@ -99,3 +99,10 @@ export const vwSessionEnd = (sessionId: string, reason: string) => {
     console.log(`-------结束唤醒Session失败，失败码: ${code}----------`);
   }
 };
+
+// 处理语音，进行语音识别检查
+export const qIVWAudioWrite = (sessionId: string) => {
+  const write = mscLib.func(
+    `int QIVWAudioWrite(const char * 	sessionID,const void * 	audioData, unsigned int 	audioLen, int audioStatus)`
+  );
+};
