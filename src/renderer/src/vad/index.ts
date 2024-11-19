@@ -56,8 +56,10 @@ export async function useVAD(
     },
     // 每帧触发的事件
     onFrameProcessed(_probabilities, frame, audioBuffer) {
-      console.log(frame.length);
-
+      // dev环境打印
+      if (import.meta.env.DEV) {
+        console.log(frame.length);
+      }
       if (isSpeaking) {
         if ((audioBuffer?.length || 0) >= minSpeechFrames && STATUS_RECORD.isVW) {
           // 初始的讲话功能，进行实时显示讲话的内容

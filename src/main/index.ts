@@ -14,6 +14,8 @@ async function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1080,
     height: 1920,
+    fullscreen: !is.dev,
+    fullscreenable: !is.dev,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -36,10 +38,10 @@ async function createWindow() {
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+    mainWindow.webContents.openDevTools({ mode: 'right' });
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
-  mainWindow.webContents.openDevTools({ mode: 'right' });
 
   // vwSessionBegin();
   let IS_MSP_LOGIN = false;

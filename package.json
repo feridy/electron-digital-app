@@ -1,7 +1,7 @@
 {
   "name": "digital-app",
   "version": "1.0.0",
-  "description": "An Electron application with Vue and TypeScript",
+  "description": "An AI question application by HD.co create",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
