@@ -226,7 +226,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
           if (this.state === 'loading') {
             this.state = 'loaded';
           }
-          if (isEnd) this.play();
+          this.play();
         }
       };
 

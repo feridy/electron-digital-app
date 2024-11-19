@@ -14,6 +14,9 @@ export async function useVAD(
   if (!window.navigator.mediaDevices) {
     throw new Error('MediaDevices is not supported');
   }
+  const config = await window.api
+    .getConfigs()
+    .catch(() => ({ wakeUpStr: import.meta.env.VITE_APP_V_WEEK_STR }));
   const stream = await window.navigator.mediaDevices.getUserMedia({
     audio: {
       channelCount: 1,
@@ -242,6 +245,7 @@ export async function useVAD(
       } else {
         resultText = resultText + str;
       }
+
       onUpdate?.(resultTextTemp || resultText || '');
       console.log(resultTextTemp || resultText || '');
     }
@@ -281,9 +285,7 @@ export async function useVAD(
         resultText = resultText + str;
       }
 
-      const wakeUpStr: string[] = import.meta.env.VITE_APP_V_WEEK_STR.split('|');
-
-      wakeUpStr;
+      const wakeUpStr: string[] = config.wakeUpStr.split('|');
 
       // 进行唤醒词匹配
       if (resultTextTemp && wakeUpStr.some((item) => similar(resultTextTemp, item) > 98)) {
@@ -499,7 +501,7 @@ function transF32ToS16(input: Float32Array) {
  * @param f 小数位精确度，默认2位
  * @returns {string|number|*} 百分数前的数值，最大100. 比如 ：90.32
  */
-function similar(s: string, t: string, f = 2) {
+export function similar(s: string, t: string, f = 2) {
   if (!s || !t) {
     return 0;
   }

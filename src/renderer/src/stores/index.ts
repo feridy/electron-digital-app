@@ -53,6 +53,7 @@ export const useStore = defineStore('pageStore', () => {
     if (!message.trim()) {
       return;
     }
+
     let isSendTTS = false;
     isHandling.value = true;
     isHandleCompleted.value = false;

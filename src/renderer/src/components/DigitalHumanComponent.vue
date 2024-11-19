@@ -24,13 +24,13 @@ const commandText = ref('');
 const isWakeUp = ref(false);
 const audioRef = ref<HTMLAudioElement>();
 const actions: Record<string, THREE.AnimationAction> = {};
-const needWeakSpaceTime = 20; //20s后就需要重新唤醒，要重置唤醒状态
 let bScroll: BScroll;
 let scene: THREE.Scene;
 let renderer: THREE.WebGLRenderer;
 let mixer: THREE.AnimationMixer;
 let handleResize = () => {};
 const showVideoMenus = ref(false);
+const config = ref<any>({});
 let closeTimeId;
 let resetTimeout;
 let showVideoMenuTimeId;
@@ -211,6 +211,7 @@ onMounted(async () => {
   try {
     let sendCommandTimeId;
     let count = 0;
+    let idle = 0;
     await initHuman();
     vad = await useVAD(
       () => {
@@ -258,9 +259,21 @@ onMounted(async () => {
     store.humanLoadSuccess();
     (store.audioPlayer as any).addEventListener(AudioPlayerEventKey.AudioPlay, onAudioPay);
     (store.audioPlayer as any).addEventListener(AudioPlayerEventKey.AudioStop, onAudioPause);
+    config.value = await window.api.getConfigs();
 
     resetTimeout = setInterval(() => {
-      if (count >= needWeakSpaceTime) {
+      // idle时没有人提问时等待3分钟切换的视频播放页面
+      if (!isWakeUp.value) {
+        if (idle >= (config.value.idleDuration || 180)) {
+          console.log(idle);
+          router.push('/video');
+        }
+        idle += 1;
+      } else {
+        idle = 0;
+      }
+
+      if (count >= (config.value.needWeakSpaceTime || 20)) {
         count = 0;
         if (
           !showAnswer.value &&
@@ -275,6 +288,7 @@ onMounted(async () => {
         }
         return;
       }
+
       count += 1;
     }, 1000);
   } catch (error) {

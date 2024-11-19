@@ -2,6 +2,8 @@ import { ElectronAPI } from '@electron-toolkit/preload';
 
 export interface Api {
   tcpConnectState: boolean;
+  getVideos: () => Promise<{ video: string; index: string; cover: string }[]>;
+  getConfigs: () => Promise<any>;
 }
 
 declare global {

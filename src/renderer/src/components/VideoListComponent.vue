@@ -6,7 +6,7 @@ import { Parallax, Controller, Autoplay } from 'swiper/modules';
 import { CloseOutlined, ArrowLeftOutlined } from '@ant-design/icons-vue';
 // Import Swiper styles
 import 'swiper/css';
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
@@ -14,9 +14,13 @@ const controlledPrevSwiper = ref<SwiperClass>();
 const manSwiper = ref<SwiperClass>();
 const controlledNextSwiper = ref<SwiperClass>();
 const videoPlayer = ref<HTMLDivElement>();
+const videos = ref<{ index: string; video: string; cover: string }[]>([]);
 const router = useRouter();
 const playVideo = ref(false);
 const showBack = ref(false);
+const preVideos = ref<{ index: string; video: string; cover: string }[]>([]);
+const nextVideos = ref<{ index: string; video: string; cover: string }[]>([]);
+
 let player;
 let timeId;
 
@@ -50,6 +54,26 @@ watch(
     }
   }
 );
+
+onMounted(async () => {
+  const list = await window.api.getVideos();
+  videos.value = list;
+  onPlayVideo(list[0].video);
+
+  const prev = [...list];
+  const next = [...list];
+  const a = prev.pop();
+  if (a) {
+    prev.unshift(a);
+  }
+
+  const item = next.splice(1, 1);
+  if (item[0]) {
+    next.unshift(item[0]);
+  }
+  nextVideos.value = next;
+  preVideos.value = prev;
+});
 </script>
 
 <template>
@@ -72,29 +96,10 @@ watch(
           manSwiper?.slidePrev();
         }
       "
+      v-if="preVideos.length > 1"
     >
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img
-          src="https://triple-slider.uiinitiative.com/images/guardians-of-the-galaxy.jpg"
-          alt=""
-        />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/justice-league.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/spider-man.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
+      <SwiperSlide v-for="item in preVideos" :key="item.index">
+        <img :src="item.cover" alt="" />
       </SwiperSlide>
     </Swiper>
     <Swiper
@@ -123,32 +128,13 @@ watch(
         }
       "
     >
-      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
-        <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
-        <img
-          src="https://triple-slider.uiinitiative.com/images/guardians-of-the-galaxy.jpg"
-          alt=""
-        />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
-        <img src="https://triple-slider.uiinitiative.com/images/justice-league.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
-        <img src="https://triple-slider.uiinitiative.com/images/spider-man.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide @click="onPlayVideo('http://vjs.zencdn.net/v/oceans.mp4')">
-        <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
+      <SwiperSlide @click="onPlayVideo(item.video)" v-for="item in videos" :key="item.index">
+        <img :src="item.cover" alt="" />
       </SwiperSlide>
     </Swiper>
     <Swiper
       :speed="600"
+      v-if="nextVideos.length > 1"
       loop
       parallax
       :allowTouchMove="false"
@@ -165,28 +151,8 @@ watch(
         }
       "
     >
-      <SwiperSlide>
-        <img
-          src="https://triple-slider.uiinitiative.com/images/guardians-of-the-galaxy.jpg"
-          alt=""
-        />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/justice-league.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/spider-man.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/suicide-squad.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src="https://triple-slider.uiinitiative.com/images/thor-ragnarok.jpg" alt="" />
-        <div class="video-title">红四军特务连</div>
+      <SwiperSlide v-for="item in nextVideos" :key="item.index">
+        <img :src="item.cover" alt="" />
       </SwiperSlide>
     </Swiper>
     <div class="video-wrapper" v-show="playVideo">
@@ -307,10 +273,6 @@ watch(
     .video {
       width: 100%;
       height: 100%;
-      object-fit: fill;
-      video {
-        object-fit: fill !important;
-      }
     }
   }
 

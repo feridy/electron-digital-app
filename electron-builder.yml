@@ -6,6 +6,8 @@ extraFiles:
   - libs
   - logs
   - db
+  - configs
+  - videos
 files:
   - "!**/.vscode/*"
   - "!src/*"
