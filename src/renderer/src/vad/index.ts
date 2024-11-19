@@ -2,6 +2,7 @@ import { MicVAD, utils } from '../vad-web';
 import { enc, HmacSHA256 } from 'crypto-js';
 // import { downloadWAV } from './audioPlayer';
 // import { message } from 'ant-design-vue';
+// let sessionId;
 
 export async function useVAD(
   onStart?: () => void,
@@ -67,7 +68,7 @@ export async function useVAD(
             createWS();
             iatWS!.onopen = () => {
               clearTimeout(wsTimeOutId);
-              hasMessage = false;
+              // hasMessage = false;
               const params = {
                 common: {
                   app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -113,7 +114,7 @@ export async function useVAD(
               const pcm = utils.arrayBufferToBase64(buffer);
               iatWS!.onopen = () => {
                 clearTimeout(wsTimeOutId);
-                hasMessage = false;
+                // hasMessage = false;
                 const params = {
                   common: {
                     app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -153,7 +154,7 @@ export async function useVAD(
       speechStartTime = 0;
     },
     // 一段话说完后的状态
-    onSpeechEnd(audioData) {
+    async onSpeechEnd(audioData) {
       console.log('VAD Speech EDN');
       isSpeaking = false;
       speechStartTime = 0;
@@ -166,8 +167,7 @@ export async function useVAD(
         createWS();
         iatWS!.onopen = () => {
           clearTimeout(wsTimeOutId);
-          hasMessage = false;
-
+          // hasMessage = false;
           const params = {
             common: {
               app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -212,6 +212,9 @@ export async function useVAD(
 
   (micVAD as any).setWeakState = (state: boolean) => {
     STATUS_RECORD.isVW = state;
+    // if (!state) {
+    //   window.electron.ipcRenderer.invoke('START_WAKE_UP_CHECK');
+    // }
   };
   (micVAD as any).getWeakState = () => STATUS_RECORD.isVW;
 
@@ -276,8 +279,12 @@ export async function useVAD(
         resultText = resultText + str;
       }
 
+      const wakeUpStr: string[] = import.meta.env.VITE_APP_V_WEEK_STR.split('|');
+
+      wakeUpStr;
+
       // 进行唤醒词匹配
-      if (resultTextTemp && similar(resultTextTemp, import.meta.env.VITE_APP_V_WEEK_STR) > 98) {
+      if (resultTextTemp && wakeUpStr.some((item) => similar(resultTextTemp, item) > 98)) {
         console.log('唤醒成功');
         iatWS?.close();
         STATUS_RECORD.isVW = true;
@@ -295,11 +302,11 @@ export async function useVAD(
     }
   }
   let wsTimeOutId = -1;
-  let hasMessage = false;
+  // let hasMessage = false;
   // let timeout;
   function onOpen() {
     clearTimeout(wsTimeOutId);
-    hasMessage = false;
+    // hasMessage = false;
     const params = {
       common: {
         app_id: import.meta.env.VITE_APP_ARS_APP_ID
@@ -343,7 +350,7 @@ export async function useVAD(
         micVAD.start();
       };
       iatWS.onmessage = (evt) => {
-        hasMessage = true;
+        // hasMessage = true;
         // 如果已经完成了唤醒，就进行问题的语音转换，否则就进行语音唤醒检查
         if (STATUS_RECORD.isVW) {
           renderResult(evt.data);

@@ -21,6 +21,7 @@ const store = useStore();
 const isStartSpeaking = ref(false);
 const showAnswer = ref(false);
 const commandText = ref('');
+const isWakeUp = ref(false);
 const audioRef = ref<HTMLAudioElement>();
 const actions: Record<string, THREE.AnimationAction> = {};
 const needWeakSpaceTime = 20; //20s后就需要重新唤醒，要重置唤醒状态
@@ -196,6 +197,16 @@ watch(
   }
 );
 
+watch(isWakeUp, (val) => {
+  if (val) {
+    nextTick(() => {
+      if (audioRef.value) {
+        store.audioPlayer.playAudioEl(audioRef.value!);
+      }
+    });
+  }
+});
+
 onMounted(async () => {
   try {
     let sendCommandTimeId;
@@ -237,9 +248,9 @@ onMounted(async () => {
         console.log('---------语音输入太短了------------');
       },
       () => {
-        store.audioPlayer.playAudioEl(audioRef.value!);
         console.log('--------唤醒成功后的回调执行----------');
         count = 0;
+        isWakeUp.value = true;
       }
     );
     vad.start();
@@ -260,6 +271,7 @@ onMounted(async () => {
           console.log('--------需要重新进行唤醒--------');
           store.reset();
           (vad as any)?.setWeakState(false);
+          isWakeUp.value = false;
         }
         return;
       }
@@ -307,7 +319,7 @@ onUnmounted(() => {
         </div>
       </div>
     </Transition>
-    <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" />
+    <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" v-if="isWakeUp" />
     <div class="show-video-list" @click="router.push('/video')" v-if="showVideoMenus">
       <AppstoreOutlined />
     </div>

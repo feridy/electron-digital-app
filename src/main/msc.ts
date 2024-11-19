@@ -5,6 +5,8 @@ console.log(path.join(process.cwd(), './libs/msc/msc_x64.dll'));
 
 const mscLib = koffi.load(path.join(process.cwd(), './libs/msc/msc_x64.dll'));
 
+let wakeUpFlag = 0;
+
 // 用户登录处理
 export const mspLogin = (onSuccess?: () => void, onError?: (errCode: number) => void) => {
   console.log('---------MSPLogin Run------------');
@@ -21,8 +23,10 @@ export const mspLogin = (onSuccess?: () => void, onError?: (errCode: number) => 
 };
 // 开启语音唤醒功能Session
 export const vwSessionBegin = (
-  onSuccess?: (sessionId: string) => void,
-  onError?: (errCode: number) => void
+  // 绑定通知的callback
+  onNotifyCallback?: (errCord: number, sessionId: string) => void,
+  // 唤醒成功callback
+  onSuccess?: (info: any) => void
 ) => {
   const resPath = path.join(process.cwd(), './libs/msc/res/ivw/wakeupresource.jet');
   const ssbStr = `ivw_threshold=0:1450,sst=wakeup,ivw_res_path =fo|${resPath}`;
@@ -44,19 +48,19 @@ export const vwSessionBegin = (
         code: number,
         param1: number,
         _param2: number,
-        info: any,
-        userData: any
+        _info: any,
+        _userData: any
       ) => {
         if (code === 2) {
           console.log(`---唤醒出现了异常，${param1}-----`);
         } else if (code === 1) {
           console.log(`------唤醒成功，可以进行后续的处理----------`);
-          let str1 = koffi.decode(info, 'char *');
-          console.log(str1);
+          wakeUpFlag = 1;
+          // const str = koffi.decode(info, 'char *');
+          onSuccess?.('success');
         }
-        console.log(userData);
-        // 取消注册
-        koffi.unregister(callback);
+        console.log(code);
+
         return 0;
       },
       koffi.pointer(IvwNotifyCallback)
@@ -64,18 +68,19 @@ export const vwSessionBegin = (
     const notify = mscLib.func(
       'int QIVWRegisterNotify(const char *sessionID, IvwNotifyCallback *msgProcCb, void *userData)'
     );
+
     const notifyCode = notify(sessionId, callback, null);
+
     if (notifyCode !== 0) {
       console.log(`------唤醒Callback的绑定失败，失败码: ${notifyCode}-------`);
     } else {
       console.log(`------唤醒Callback的绑定成功-------`);
     }
-
-    onSuccess?.(sessionId);
   } else {
     console.log(`-----开启了语音唤醒功能的Session失败， 失败码为: ${errorCode}--------`);
-    onError?.(errorCode[0]);
+    // onError?.(errorCode[0]);
   }
+  onNotifyCallback?.(errorCode[0], sessionId);
 };
 
 // 登出处理
@@ -91,7 +96,7 @@ export const doQIVWLogout = () => {
 
 // 结束语音唤醒的Session
 export const vwSessionEnd = (sessionId: string, reason: string) => {
-  const stop = mscLib.func(`int IVWSessionEnd(const char * 	sessionID,const char * 	hints)`);
+  const stop = mscLib.func(`int QIVWSessionEnd(const char * sessionID,const char * hints)`);
   const code = stop(sessionId, reason);
   if (code === 0) {
     console.log('-------结束唤醒Session成功----------');
@@ -101,8 +106,16 @@ export const vwSessionEnd = (sessionId: string, reason: string) => {
 };
 
 // 处理语音，进行语音识别检查
-export const qIVWAudioWrite = (sessionId: string) => {
+export const qIVWAudioWrite = (sessionId: string, buffer: Buffer) => {
+  wakeUpFlag = 0;
+  console.log(`----进行音频分析，验证是否具有唤醒词-------`);
   const write = mscLib.func(
-    `int QIVWAudioWrite(const char * 	sessionID,const void * 	audioData, unsigned int 	audioLen, int audioStatus)`
+    `int QIVWAudioWrite(const char * sessionID,const void * audioData, unsigned int audioLen, int audioStatus)`
   );
+  const errCode = write(sessionId, buffer, buffer.length, 2);
+  if (errCode !== 0) {
+    console.log(`------音频分析，出现了错误，错误码为:${errCode}--------`);
+  } else {
+    console.log(`------音频分析--------`);
+  }
 };
