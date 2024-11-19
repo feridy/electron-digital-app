@@ -39,6 +39,10 @@ function onPlayVideo(src: string) {
 }
 
 function onCloseVideo() {
+  if (videos.value.length === 1) {
+    router.push('/');
+    return;
+  }
   player.pause();
   playVideo.value = false;
 }

@@ -35,6 +35,8 @@ let closeTimeId;
 let resetTimeout;
 let showVideoMenuTimeId;
 
+const wekaUpStr = ref<string>('');
+
 async function initHuman() {
   let clock: THREE.Clock;
   let camera: THREE.PerspectiveCamera;
@@ -223,6 +225,7 @@ onMounted(async () => {
       },
       (text) => {
         commandText.value = text;
+        count = 0;
         console.log('--------ARS语音转换TXT更新-------');
       },
       () => {
@@ -291,6 +294,11 @@ onMounted(async () => {
 
       count += 1;
     }, 1000);
+
+    wekaUpStr.value = (config.value.wakeUpStr || import.meta.env.VITE_APP_V_WEEK_STR)
+      .split('|')
+      .map((item) => `“${item}”`)
+      .join('、');
   } catch (error) {
     console.log(error);
   }
@@ -331,6 +339,14 @@ onUnmounted(() => {
             <MarkdownComponent :content="store.showAiAnswer" />
           </div>
         </div>
+      </div>
+    </Transition>
+    <Transition
+      enter-active-class="animate__animated animate__fadeIn animate__faster"
+      leave-active-class="animate__animated animate__fadeOut animate__faster"
+    >
+      <div class="will-wakeup-tip" v-if="!isWakeUp">
+        <span>请说{{ wekaUpStr }}，来唤醒我，为您解答</span>
       </div>
     </Transition>
     <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" v-if="isWakeUp" />
@@ -427,5 +443,27 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   cursor: pointer;
+}
+
+.will-wakeup-tip {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 640px;
+  height: 129px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 26px;
+  font-weight: 600;
+  color: #fff;
+  background-image: url('../assets/images/answer-bg.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  > span {
+    font-size: 26px;
+    font-weight: 600;
+  }
 }
 </style>
