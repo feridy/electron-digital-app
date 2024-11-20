@@ -9,7 +9,7 @@ import { AppstoreOutlined } from '@ant-design/icons-vue';
 import { MicVAD } from '@renderer/vad-web';
 // @ts-ignore
 import { useStore } from '@renderer/stores';
-import { AudioPlayerEventKey } from '../player';
+import { AudioPlayer, AudioPlayerEventKey } from '../player';
 import BScroll from '@better-scroll/core';
 import { useRouter } from 'vue-router';
 
@@ -105,9 +105,9 @@ async function initHuman() {
     }
 
     renderer.render(scene, camera);
-    const lipsync = store.audioPlayer.lipsync;
+    const lipsync = store.audioPlayer?.lipsync;
 
-    if (lipsync.isWorking && mesh) {
+    if (lipsync && lipsync.isWorking && mesh) {
       if (mesh.morphTargetDictionary) {
         const kiss = mesh.morphTargetDictionary?.['blendShape1.kiss'];
         const lips = mesh.morphTargetDictionary?.['blendShape1.lips'];
@@ -128,7 +128,7 @@ async function initHuman() {
           mesh.morphTargetInfluences[bizui] = 0.9;
         }
       }
-    } else if (!lipsync.isWorking && mesh) {
+    } else if (!lipsync?.isWorking && mesh) {
       if (mesh.morphTargetDictionary) {
         const kiss = mesh.morphTargetDictionary?.['blendShape1.kiss'];
         const lips = mesh.morphTargetDictionary?.['blendShape1.lips'];
@@ -203,17 +203,24 @@ watch(isWakeUp, (val) => {
   if (val) {
     nextTick(() => {
       if (audioRef.value) {
-        store.audioPlayer.playAudioEl(audioRef.value!);
+        setTimeout(() => {
+          store.audioPlayer?.playAudioEl(audioRef.value!);
+          setTimeout(() => {
+            vad?.start();
+          }, 500);
+        }, 30);
       }
     });
   }
 });
 
 onMounted(async () => {
+  console.log(`-------------进入到了AI数字人页面--------------`);
   try {
     let sendCommandTimeId;
     let count = 0;
     let idle = 0;
+    store.setAudioPlayer(new AudioPlayer());
     await initHuman();
     vad = await useVAD(
       () => {
@@ -262,7 +269,9 @@ onMounted(async () => {
     store.humanLoadSuccess();
     (store.audioPlayer as any).addEventListener(AudioPlayerEventKey.AudioPlay, onAudioPay);
     (store.audioPlayer as any).addEventListener(AudioPlayerEventKey.AudioStop, onAudioPause);
-    config.value = await window.api.getConfigs();
+    config.value = await window.api.getConfigs().catch(() => {
+      return {};
+    });
 
     resetTimeout = setInterval(() => {
       // idle时没有人提问时等待3分钟切换的视频播放页面
@@ -311,9 +320,11 @@ onUnmounted(() => {
   mixer?.stopAllAction();
   store.reset();
   clearInterval(resetTimeout);
-  window.removeEventListener('resize', handleResize);
   (store.audioPlayer as any).removeEventListener(AudioPlayerEventKey.AudioPlay, onAudioPay);
   (store.audioPlayer as any).removeEventListener(AudioPlayerEventKey.AudioStop, onAudioPause);
+  store.audioPlayer?.destroy();
+  store.setAudioPlayer(null);
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -450,7 +461,7 @@ onUnmounted(() => {
   bottom: 120px;
   left: 50%;
   transform: translate(-50%, 0);
-  width: 640px;
+  width: 870px;
   height: 129px;
   display: flex;
   justify-content: center;

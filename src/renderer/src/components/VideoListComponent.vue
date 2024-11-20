@@ -10,12 +10,14 @@ import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
+// import { useStore } from '../stores';
 const controlledPrevSwiper = ref<SwiperClass>();
 const manSwiper = ref<SwiperClass>();
 const controlledNextSwiper = ref<SwiperClass>();
-const videoPlayer = ref<HTMLDivElement>();
+const videoPlayer = ref<HTMLVideoElement>();
 const videos = ref<{ index: string; video: string; cover: string }[]>([]);
 const router = useRouter();
+// const store = useStore();
 const playVideo = ref(false);
 const showBack = ref(false);
 const preVideos = ref<{ index: string; video: string; cover: string }[]>([]);
@@ -29,7 +31,8 @@ function onPlayVideo(src: string) {
     player = videojs(videoPlayer.value!, {
       autoplay: true,
       loop: true,
-      controls: true
+      controls: true,
+      fluid: true
     });
   }
   player.src(src);
@@ -60,8 +63,10 @@ watch(
 );
 
 onMounted(async () => {
+  // store.reset();
   const list = await window.api.getVideos();
   videos.value = list;
+  console.log(`-------------进入到了视频播放页面--------------`);
   onPlayVideo(list[0].video);
 
   const prev = [...list];
@@ -75,6 +80,7 @@ onMounted(async () => {
   if (item[0]) {
     next.unshift(item[0]);
   }
+
   nextVideos.value = next;
   preVideos.value = prev;
 });
@@ -108,7 +114,7 @@ onMounted(async () => {
     </Swiper>
     <Swiper
       :speed="600"
-      loop
+      :loop="videos.length > 1"
       parallax
       grabCursor
       autoplay

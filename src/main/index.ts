@@ -1,7 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
-import { join } from 'path';
+import path, { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initMainLog } from '../log';
+import fs from 'fs-extra';
 import icon from '../../resources/icon.png?asset';
 // import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
 // import { mspLogin, vwSessionBegin } from './msc';
@@ -21,6 +22,7 @@ async function createWindow() {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      backgroundThrottling: false,
       sandbox: false
     }
   });
@@ -88,6 +90,12 @@ async function createWindow() {
   //     MSP_SESSION_ID = '';
   //   }
   // });
+
+  ipcMain.handle('SAVE_SEND_AUDIO', async (e, filename: string, data: DataView) => {
+    const logPath = path.join(process.cwd(), './logs/audios', filename);
+    await fs.ensureFile(logPath);
+    await fs.writeFile(logPath, Buffer.from(data.buffer, data.byteOffset, data.byteLength));
+  });
 
   return mainWindow;
 }

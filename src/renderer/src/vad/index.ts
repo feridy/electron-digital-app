@@ -1,8 +1,17 @@
 import { MicVAD, utils } from '../vad-web';
 import { enc, HmacSHA256 } from 'crypto-js';
+import pinyin from 'pinyin';
 // import { downloadWAV } from './audioPlayer';
 // import { message } from 'ant-design-vue';
 // let sessionId;
+
+function removePunctuation(text: string) {
+  return text
+    .replace(/[.,!?;:'"(){}[\]<>@#$%^&*`~\-_=+|\\/]/g, '')
+    .replace(/\s+/g, ' ') // 多余空格压缩为单个空格
+    .trim()
+    .replace(/[\p{P}\p{S}]/gu, '');
+}
 
 export async function useVAD(
   onStart?: () => void,
@@ -19,10 +28,10 @@ export async function useVAD(
     .catch(() => ({ wakeUpStr: import.meta.env.VITE_APP_V_WEEK_STR }));
   const stream = await window.navigator.mediaDevices.getUserMedia({
     audio: {
-      channelCount: 1,
-      echoCancellation: true,
-      autoGainControl: true,
-      noiseSuppression: true
+      // sampleRate: 44100, // 设置采样率
+      echoCancellation: true, // 回声消除
+      noiseSuppression: true, // 噪声抑制
+      autoGainControl: true // 自动增益控制
     }
   });
   let resultText = '';
@@ -31,7 +40,7 @@ export async function useVAD(
   let isSpeaking = false;
   const maxRecordingTime = 20;
   const preSpeechPadFrames = 2;
-  const minSpeechFrames = 3;
+  const minSpeechFrames = 2;
   // 统计时间，一次最多能进行60秒的录音
   let speechStartTime = 0;
   let startWs = false;
@@ -43,10 +52,19 @@ export async function useVAD(
     isVW: false // 是否已经唤醒
   };
 
+  const wakeUpStr: string[] = config.wakeUpStr.split('|');
+
+  const wakeUpStrPinyin = wakeUpStr.map((item) => {
+    return pinyin(item, {
+      style: 0,
+      group: true
+    }).map((item) => item[0]);
+  });
+
   const micVAD = await MicVAD.new({
     stream,
     submitUserSpeechOnPause: true,
-    positiveSpeechThreshold: 0.92,
+    positiveSpeechThreshold: 0.6,
     negativeSpeechThreshold: 0.1,
     minSpeechFrames,
     preSpeechPadFrames,
@@ -164,6 +182,11 @@ export async function useVAD(
       isSpeaking = false;
       speechStartTime = 0;
       micVAD.start();
+      if (config.saveSendAudio) {
+        const rawAudioData = transF32ToS16(audioData);
+        saveWAV(new DataView(new Int16Array(rawAudioData).buffer), 16000, 16);
+      }
+
       // 没有唤醒前，检查唤醒
       if (!STATUS_RECORD.isVW) {
         if (speechStartTime > 5) return;
@@ -269,6 +292,7 @@ export async function useVAD(
       const data = jsonData.data.result;
       let str = '';
       const ws = data.ws;
+      console.log(data);
       for (let i = 0; i < ws.length; i++) {
         str = str + ws[i].cw[0].w;
       }
@@ -294,6 +318,21 @@ export async function useVAD(
         STATUS_RECORD.isVW = true;
         onWeakUp?.();
         return;
+      } else {
+        const text = removePunctuation(resultTextTemp || resultText);
+        // 进行拼音的匹配，按照每个字的拼音转换
+        const pinyinResult = pinyin(text, {
+          segment: false,
+          style: 0,
+          group: true
+        });
+        const res = pinyinResult.map((item) => item[0]);
+        if (wakeUpStrPinyin.some((item) => matchWakeUp(item, res))) {
+          iatWS?.close();
+          STATUS_RECORD.isVW = true;
+          onWeakUp?.();
+          return;
+        }
       }
       console.log(resultTextTemp || resultText || '');
     }
@@ -540,4 +579,103 @@ export function similar(s: string, t: string, f = 2) {
   }
   const res = (1 - d[n][m] / l) * 100;
   return Number(res.toFixed(f));
+}
+
+export function matchWakeUp(input: string[], source: string[]) {
+  if (input.length > source.length) return false;
+  if (input.join('') === source.join('')) return true;
+
+  const iLen = input.length;
+  const sLen = source.length;
+  for (let i = 0; i <= sLen - iLen; i++) {
+    let temp = source.slice(i, iLen + i);
+    if (similar(temp.join(''), input.join('')) > 90) return true;
+  }
+
+  return false;
+}
+
+function encodeWAV(
+  bytes: DataView,
+  sampleRate: number,
+  numChannels: number,
+  outputSampleBits: number,
+  littleEdian = true
+) {
+  const sampleBits = outputSampleBits;
+  const buffer = new ArrayBuffer(44 + bytes.byteLength);
+  const data = new DataView(buffer);
+  const channelCount = numChannels;
+  let offset = 0;
+  // 资源交换文件标识符
+  writeString(data, offset, 'RIFF');
+  offset += 4;
+  // 下个地址开始到文件尾总字节数,即文件大小-8
+  data.setUint32(offset, 36 + bytes.byteLength, true);
+  offset += 4;
+  // WAV文件标志
+  writeString(data, offset, 'WAVE');
+  offset += 4;
+  // 波形格式标志
+  writeString(data, offset, 'fmt ');
+  offset += 4;
+  // 过滤字节,一般为 0x10 = 16
+  data.setUint32(offset, 16, true);
+  offset += 4;
+  // 格式类别 (PCM形式采样数据)
+  data.setUint16(offset, 1, true);
+  offset += 2;
+  // 通道数
+  data.setUint16(offset, channelCount, true);
+  offset += 2;
+  // 采样率,每秒样本数,表示每个通道的播放速度
+  data.setUint32(offset, sampleRate, true);
+  offset += 4;
+  // 波形数据传输率 (每秒平均字节数) 单声道×每秒数据位数×每样本数据位/8
+  data.setUint32(offset, channelCount * sampleRate * (sampleBits / 8), true);
+  offset += 4;
+  // 快数据调整数 采样一次占用字节数 单声道×每样本的数据位数/8
+  data.setUint16(offset, channelCount * (sampleBits / 8), true);
+  offset += 2;
+  // 每样本数据位数
+  data.setUint16(offset, sampleBits, true);
+  offset += 2;
+  // 数据标识符
+  writeString(data, offset, 'data');
+  offset += 4;
+  // 采样数据总数,即数据总大小-44
+  data.setUint32(offset, bytes.byteLength, true);
+  offset += 4;
+
+  // 给wav头增加pcm体
+  for (let i = 0; i < bytes.byteLength; ) {
+    data.setUint8(offset, bytes.getUint8(i));
+    offset++;
+    i++;
+  }
+
+  return data;
+}
+
+function writeString(data: DataView, offset: number, str: string) {
+  for (let i = 0; i < str.length; i++) {
+    data.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
+export async function saveWAV(audioData: DataView, sampleRate?: number, outputSampleBits?: number) {
+  const wavData = encodeWAV(audioData, sampleRate || 44100, 1, outputSampleBits || 16);
+  const blob = new Blob([wavData], {
+    type: 'audio/wav'
+  });
+  const defaultName = `${new Date().getTime()}.wav`;
+  await window.electron.ipcRenderer
+    .invoke('SAVE_SEND_AUDIO', defaultName, wavData)
+    .catch((err) => console.log(err));
+
+  // const node = document.createElement('a');
+  // node.href = window.URL.createObjectURL(blob);
+  // node.download = `${defaultName}.wav`;
+  // node.click();
+  // node.remove();
 }
