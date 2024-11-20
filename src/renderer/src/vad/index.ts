@@ -292,7 +292,7 @@ export async function useVAD(
       const data = jsonData.data.result;
       let str = '';
       const ws = data.ws;
-      console.log(data);
+      // console.log(data);
       for (let i = 0; i < ws.length; i++) {
         str = str + ws[i].cw[0].w;
       }
@@ -358,7 +358,7 @@ export async function useVAD(
         language: 'zh_cn',
         domain: 'iat',
         accent: 'mandarin',
-        vad_eos: 5000,
+        // vad_eos: 2000,
         dwa: 'wpgs'
         // ptt: 0
       },

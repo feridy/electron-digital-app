@@ -111,6 +111,9 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
 
   isRest = false;
 
+  // 队列，提交到文字转语音的数组队列
+  postMessage: string[] = [];
+
   constructor() {
     super();
     this.audioContext = new AudioContext();
@@ -231,10 +234,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       this.ws.onerror = (e) => {
         console.log(e);
         options?.onerror?.('出现了异常的错误❌');
-        // Modal.error({
-        //   title: '提示',
-        //   content: '出现了异常的错误❌'
-        // });
+
         this.dispatchEvent({
           type: AudioPlayerEventKey.WSError,
           message: '出现了异常的错误❌'
@@ -244,13 +244,12 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       this.ws.onclose = () => {
         // 可以开启下一次TTS转换
         this.ws = undefined;
-
         options?.onfinish?.();
         this.dispatchEvent({
           type: AudioPlayerEventKey.WSClosed
         });
 
-        console.log('closed');
+        console.log('player webSocket closed');
       };
 
       // 设置5S的超时处理
@@ -365,7 +364,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
           this.next = true;
           // 还存在流就要继续播放
           this.play();
-          console.log('继续进行流的播放');
+          console.log('存在为播放的音频流');
         } else {
           this.stop();
           this.next = false;

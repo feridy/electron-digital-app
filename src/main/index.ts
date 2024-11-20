@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initMainLog } from '../log';
 import fs from 'fs-extra';
 import icon from '../../resources/icon.png?asset';
-// import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
+import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
 // import { mspLogin, vwSessionBegin } from './msc';
 
 // 初始化log文件
@@ -46,50 +46,48 @@ async function createWindow() {
   }
 
   // vwSessionBegin();
-  // let IS_MSP_LOGIN = false;
-  // let MSP_SESSION_ID = '';
-  // if (!IS_MSP_LOGIN) {
-  //   mspLogin(() => {
-  //     IS_MSP_LOGIN = true;
-  //   });
-  // }
+  let IS_MSP_LOGIN = false;
+  let MSP_SESSION_ID = '';
+  if (!IS_MSP_LOGIN) {
+    mspLogin(() => {
+      IS_MSP_LOGIN = true;
+    });
+  }
 
-  // ipcMain.handle('START_WAKE_UP_CHECK', () => {
-  //   return new Promise<string>((resolve) => {
-  //     setTimeout(() => {
-  //       if (IS_MSP_LOGIN && !MSP_SESSION_ID) {
-  //         vwSessionBegin(
-  //           (errCode, sessionId) => {
-  //             if (!errCode) {
-  //               MSP_SESSION_ID = sessionId;
-  //               resolve(MSP_SESSION_ID);
-  //             }
-  //           },
-  //           (flag) => {
-  //             // 唤醒成功
-  //             console.log(flag);
-  //             // vwSessionEnd(MSP_SESSION_ID, '唤醒成功');
-  //           }
-  //         );
-  //       }
-  //     }, 10);
-  //   });
-  // });
+  ipcMain.handle('START_WAKE_UP_CHECK', () => {
+    return new Promise<string>((resolve) => {
+      if (IS_MSP_LOGIN && !MSP_SESSION_ID) {
+        vwSessionBegin(
+          (errCode, sessionId) => {
+            if (!errCode) {
+              MSP_SESSION_ID = sessionId;
+              resolve(MSP_SESSION_ID);
+            }
+          },
+          (flag) => {
+            // 唤醒成功
+            console.log(flag);
+            // vwSessionEnd(MSP_SESSION_ID, '唤醒成功');
+          }
+        );
+      }
+    });
+  });
 
-  // ipcMain.handle('WAKE_UP_CHECK', async (_, audio: string) => {
-  //   if (IS_MSP_LOGIN && MSP_SESSION_ID) {
-  //     const buffer = Buffer.from(audio, 'base64');
-  //     qIVWAudioWrite(MSP_SESSION_ID, buffer);
-  //   }
-  //   // audio
-  // });
+  ipcMain.handle('WAKE_UP_CHECK', async (_, audio: string) => {
+    if (IS_MSP_LOGIN && MSP_SESSION_ID) {
+      const buffer = Buffer.from(audio, 'base64');
+      qIVWAudioWrite(MSP_SESSION_ID, buffer);
+    }
+    // audio
+  });
 
-  // ipcMain.handle('WAKE_UP_END', () => {
-  //   if (MSP_SESSION_ID) {
-  //     vwSessionEnd(MSP_SESSION_ID, '手动结束语音唤醒');
-  //     MSP_SESSION_ID = '';
-  //   }
-  // });
+  ipcMain.handle('WAKE_UP_END', () => {
+    if (MSP_SESSION_ID) {
+      vwSessionEnd(MSP_SESSION_ID, '手动结束语音唤醒');
+      MSP_SESSION_ID = '';
+    }
+  });
 
   ipcMain.handle('SAVE_SEND_AUDIO', async (e, filename: string, data: DataView) => {
     const logPath = path.join(process.cwd(), './logs/audios', filename);

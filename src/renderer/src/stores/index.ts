@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { onMounted, ref, shallowRef, watch } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 import { AudioPlayer, AudioPlayerEventKey } from '../player';
 import { nanoid } from '@rubik/utils';
 import { MicVAD } from '@renderer/vad-web';
@@ -235,10 +235,12 @@ export const useStore = defineStore('pageStore', () => {
       });
       audioPlayer.value.addEventListener(AudioPlayerEventKey.AudioStop, () => {
         setTimeout(() => {
-          if (!postAudio.value.length) {
+          // 这个是所有的都提交了TTS
+          if (!postAudio.value.length && !audioPlayer.value?.ws) {
             console.log('播放的音频中断');
             vadInstance.value?.start();
           }
+
           if (isGetChatMessageStreamFinish && !audioPlayer.value?.ws) {
             showAiAnswer.value = getChatAnswer.value;
             // 对于最新的问答会话方式的展示问答
@@ -268,8 +270,6 @@ export const useStore = defineStore('pageStore', () => {
         }
         startTime = currentTime;
       });
-
-      console.log(audioPlayer);
     },
     {
       immediate: true
