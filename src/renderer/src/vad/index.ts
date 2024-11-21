@@ -192,37 +192,45 @@ export async function useVAD(
       if (!STATUS_RECORD.isVW) {
         if (speechStartTime > 10) return;
         console.log('开始进行语音唤醒');
+        const result = await window.electron.ipcRenderer.invoke('WAKE_UP_PCM', audioData);
+        if (result) {
+          console.log('唤醒成功，√');
+          iatWS?.close();
+          STATUS_RECORD.isVW = true;
+          onWeakUp?.();
+        }
+        console.log('完成了语音唤醒的检查');
         // const buffer = encodePCM(audioData, 16).buffer;
         // const pcm = utils.arrayBufferToBase64(buffer);
-        createWS();
-        iatWS!.onopen = () => {
-          clearTimeout(wsTimeOutId);
-          // hasMessage = false;
-          const params = {
-            common: {
-              app_id: import.meta.env.VITE_APP_ARS_APP_ID
-            },
-            business: {
-              language: 'zh_cn',
-              domain: 'iat',
-              accent: 'mandarin',
-              vad_eos: 5000,
-              dwa: 'wpgs'
-              // ptt: 0
-            },
-            data: {
-              status: 2,
-              format: 'audio/L16;rate=16000',
-              encoding: 'raw',
-              audio: pcm
-            }
-          };
-          iatWS?.send(JSON.stringify(params));
-          console.log('打开ARS Websocket 完成，实现了链接');
-          if (STATUS_RECORD.isVW) {
-            onStart?.();
-          }
-        };
+        // createWS();
+        // iatWS!.onopen = () => {
+        //   clearTimeout(wsTimeOutId);
+        //   // hasMessage = false;
+        //   const params = {
+        //     common: {
+        //       app_id: import.meta.env.VITE_APP_ARS_APP_ID
+        //     },
+        //     business: {
+        //       language: 'zh_cn',
+        //       domain: 'iat',
+        //       accent: 'mandarin',
+        //       vad_eos: 5000,
+        //       dwa: 'wpgs'
+        //       // ptt: 0
+        //     },
+        //     data: {
+        //       status: 2,
+        //       format: 'audio/L16;rate=16000',
+        //       encoding: 'raw',
+        //       audio: pcm
+        //     }
+        //   };
+        //   iatWS?.send(JSON.stringify(params));
+        //   console.log('打开ARS Websocket 完成，实现了链接');
+        //   if (STATUS_RECORD.isVW) {
+        //     onStart?.();
+        //   }
+        // };
         return;
       }
 

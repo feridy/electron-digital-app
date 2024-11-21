@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initMainLog } from '../log';
 import fs from 'fs-extra';
 import icon from '../../resources/icon.png?asset';
+import { createKeywordSpotter } from './sherpa';
 import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
 // import { mspLogin, vwSessionBegin } from './msc';
 
@@ -54,6 +55,8 @@ async function createWindow() {
     });
   }
 
+  const kws = await createKeywordSpotter();
+
   ipcMain.handle('START_WAKE_UP_CHECK', () => {
     return new Promise<string>((resolve) => {
       if (IS_MSP_LOGIN && !MSP_SESSION_ID) {
@@ -89,10 +92,30 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle('SAVE_SEND_AUDIO', async (e, filename: string, data: DataView) => {
-    const logPath = path.join(process.cwd(), './logs/audios', filename);
-    await fs.ensureFile(logPath);
-    await fs.writeFile(logPath, Buffer.from(data.buffer, data.byteOffset, data.byteLength));
+  ipcMain.handle('SAVE_SEND_AUDIO', async (_e, filename: string, data: DataView) => {
+    const audioPath = path.join(process.cwd(), './logs/audios', filename);
+    await fs.ensureFile(audioPath);
+    await fs.writeFile(audioPath, Buffer.from(data.buffer, data.byteOffset, data.byteLength));
+    // console.log(kws);
+
+    // await detectedKeyword(audioPath).catch((err) => console.log(err));
+  });
+
+  ipcMain.handle('WAKE_UP_PCM', async (_, pcmData: Float32Array) => {
+    const stream = kws.createStream();
+    stream.acceptWaveform(kws.config.featConfig.sampleRate, pcmData);
+    const detectedKeywords: string[] = [];
+    while (kws.isReady(stream)) {
+      kws.decode(stream);
+      const keyword = kws.getResult(stream).keyword;
+      if (keyword != '') {
+        detectedKeywords.push(keyword);
+      }
+    }
+    console.log(detectedKeywords);
+    stream.free();
+
+    return detectedKeywords.length > 0;
   });
 
   return mainWindow;
