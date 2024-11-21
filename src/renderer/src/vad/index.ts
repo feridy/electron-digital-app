@@ -28,7 +28,7 @@ export async function useVAD(
     .catch(() => ({ wakeUpStr: import.meta.env.VITE_APP_V_WEEK_STR }));
   const stream = await window.navigator.mediaDevices.getUserMedia({
     audio: {
-      // sampleRate: 44100, // 设置采样率
+      sampleRate: 44100, // 设置采样率
       echoCancellation: true, // 回声消除
       noiseSuppression: true, // 噪声抑制
       autoGainControl: true // 自动增益控制
@@ -182,16 +182,18 @@ export async function useVAD(
       isSpeaking = false;
       speechStartTime = 0;
       micVAD.start();
+      const buffer = encodePCM(audioData, 16).buffer;
+      const pcm = utils.arrayBufferToBase64(buffer);
       if (config.saveSendAudio) {
-        const rawAudioData = transF32ToS16(audioData);
-        saveWAV(new DataView(new Int16Array(rawAudioData).buffer), 16000, 16);
+        saveWAV(new DataView(buffer), 16000, 16);
       }
 
       // 没有唤醒前，检查唤醒
       if (!STATUS_RECORD.isVW) {
-        if (speechStartTime > 5) return;
-        const buffer = encodePCM(audioData, 16).buffer;
-        const pcm = utils.arrayBufferToBase64(buffer);
+        if (speechStartTime > 10) return;
+        console.log('开始进行语音唤醒');
+        // const buffer = encodePCM(audioData, 16).buffer;
+        // const pcm = utils.arrayBufferToBase64(buffer);
         createWS();
         iatWS!.onopen = () => {
           clearTimeout(wsTimeOutId);
@@ -216,6 +218,7 @@ export async function useVAD(
             }
           };
           iatWS?.send(JSON.stringify(params));
+          console.log('打开ARS Websocket 完成，实现了链接');
           if (STATUS_RECORD.isVW) {
             onStart?.();
           }
@@ -225,6 +228,7 @@ export async function useVAD(
 
       // 最后一次进行一次校准，结束时进行WS状态的改变，将整个录音文件进行转化，唤醒后，最后一次进行语音状态修改
       if (iatWS?.readyState === WebSocket.OPEN) {
+        console.log('通知ARS Websocket 完成了转义');
         iatWS?.send(
           JSON.stringify({
             data: {
@@ -286,6 +290,7 @@ export async function useVAD(
     }
   }
   function checkVWState(message: string) {
+    console.log('语音识别结束进行唤醒词检查');
     // 识别结束
     const jsonData = JSON.parse(message);
     if (jsonData.data && jsonData.data.result) {
@@ -328,6 +333,7 @@ export async function useVAD(
         });
         const res = pinyinResult.map((item) => item[0]);
         if (wakeUpStrPinyin.some((item) => matchWakeUp(item, res))) {
+          console.log('唤醒成功，可以开始问话了');
           iatWS?.close();
           STATUS_RECORD.isVW = true;
           onWeakUp?.();
@@ -375,10 +381,12 @@ export async function useVAD(
   }
   function onClose() {
     iatWS = null;
+    console.log('ARS Websocket 服务关闭了');
     clearTimeout(wsTimeOutId);
   }
   function createWS() {
     if (!iatWS || iatWS?.readyState === WebSocket.CLOSED) {
+      console.log('开始进行WS远程链接');
       iatWS = new WebSocket(getWebSocketUrl());
       resultTextTemp = '';
       resultText = '';
@@ -389,7 +397,7 @@ export async function useVAD(
         if (STATUS_RECORD.isVW) {
           onEnd?.();
         }
-        console.log(e);
+        console.log('远程的ARS转义出现了错误', e);
         micVAD.start();
       };
       iatWS.onmessage = (evt) => {
@@ -589,7 +597,9 @@ export function matchWakeUp(input: string[], source: string[]) {
   const sLen = source.length;
   for (let i = 0; i <= sLen - iLen; i++) {
     let temp = source.slice(i, iLen + i);
-    if (similar(temp.join(''), input.join('')) > 90) return true;
+    const score = similar(temp.join(''), input.join(''));
+    console.log(score);
+    if (score > 75) return true;
   }
 
   return false;
