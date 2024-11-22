@@ -56,3 +56,36 @@ export async function detectedKeyword(samples: Float32Array | string) {
   stream.free();
   kws.free();
 }
+
+export function createOnlineRecognizer() {
+  const encoderPath = path.join(
+    process.cwd(),
+    './sherpa-onnx/ars/sherpa-onnx-streaming-paraformer-bilingual-zh-en/encoder.int8.onnx'
+  );
+  const decodePath = path.join(
+    process.cwd(),
+    './sherpa-onnx/ars/sherpa-onnx-streaming-paraformer-bilingual-zh-en/decoder.int8.onnx'
+  );
+  const tokenPath = path.join(
+    process.cwd(),
+    './sherpa-onnx/ars/sherpa-onnx-streaming-paraformer-bilingual-zh-en/tokens.txt'
+  );
+
+  const modelConfig = {
+    paraformer: {
+      encoder: encoderPath,
+      decoder: decodePath
+    },
+    tokens: tokenPath
+  };
+
+  const recognizerConfig = {
+    modelConfig: modelConfig,
+    enableEndpoint: 1,
+    rule1MinTrailingSilence: 2.4,
+    rule2MinTrailingSilence: 1.2,
+    rule3MinUtteranceLength: 20
+  };
+
+  return sherpa.createOnlineRecognizer(recognizerConfig);
+}

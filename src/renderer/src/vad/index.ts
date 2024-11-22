@@ -81,6 +81,7 @@ export async function useVAD(
       if (import.meta.env.DEV) {
         console.log(frame.length);
       }
+
       if (isSpeaking) {
         if ((audioBuffer?.length || 0) >= minSpeechFrames && STATUS_RECORD.isVW) {
           // 初始的讲话功能，进行实时显示讲话的内容
@@ -183,7 +184,7 @@ export async function useVAD(
       speechStartTime = 0;
       micVAD.start();
       const buffer = encodePCM(audioData, 16).buffer;
-      const pcm = utils.arrayBufferToBase64(buffer);
+      // const pcm = utils.arrayBufferToBase64(buffer);
       if (config.saveSendAudio) {
         saveWAV(new DataView(buffer), 16000, 16);
       }
@@ -200,37 +201,7 @@ export async function useVAD(
           onWeakUp?.();
         }
         console.log('完成了语音唤醒的检查');
-        // const buffer = encodePCM(audioData, 16).buffer;
-        // const pcm = utils.arrayBufferToBase64(buffer);
-        // createWS();
-        // iatWS!.onopen = () => {
-        //   clearTimeout(wsTimeOutId);
-        //   // hasMessage = false;
-        //   const params = {
-        //     common: {
-        //       app_id: import.meta.env.VITE_APP_ARS_APP_ID
-        //     },
-        //     business: {
-        //       language: 'zh_cn',
-        //       domain: 'iat',
-        //       accent: 'mandarin',
-        //       vad_eos: 5000,
-        //       dwa: 'wpgs'
-        //       // ptt: 0
-        //     },
-        //     data: {
-        //       status: 2,
-        //       format: 'audio/L16;rate=16000',
-        //       encoding: 'raw',
-        //       audio: pcm
-        //     }
-        //   };
-        //   iatWS?.send(JSON.stringify(params));
-        //   console.log('打开ARS Websocket 完成，实现了链接');
-        //   if (STATUS_RECORD.isVW) {
-        //     onStart?.();
-        //   }
-        // };
+
         return;
       }
 

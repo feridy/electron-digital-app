@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initMainLog } from '../log';
 import fs from 'fs-extra';
 import icon from '../../resources/icon.png?asset';
-import { createKeywordSpotter } from './sherpa';
+import { createKeywordSpotter, createOnlineRecognizer } from './sherpa';
 import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
 // import { mspLogin, vwSessionBegin } from './msc';
 
@@ -56,6 +56,11 @@ async function createWindow() {
   }
 
   const kws = await createKeywordSpotter();
+
+  // const recognizer = await createOnlineRecognizer();
+  // let recognizerStream: any = null;
+  // let lastText = '';
+  // let segmentIndex = 0;
 
   ipcMain.handle('START_WAKE_UP_CHECK', () => {
     return new Promise<string>((resolve) => {
@@ -117,6 +122,59 @@ async function createWindow() {
 
     return detectedKeywords.length > 0;
   });
+
+  // ipcMain.handle('ARS_STREAM_START', () => {
+  //   if (recognizerStream) throw new Error('ARS ERROR: STREAM IS NOT END!!');
+  //   recognizerStream = recognizer.createStream();
+  //   lastText = '';
+  //   segmentIndex = 0;
+  // });
+
+  // ipcMain.handle('ARS_STREAM_HANDLE', async (_, frame: Float32Array) => {
+  //   if (!recognizerStream) {
+  //     return;
+  //     // recognizerStream = recognizer.createStream();
+  //   }
+  //   recognizerStream.acceptWaveform(recognizer.config.featConfig.sampleRate, frame);
+  //   while (recognizer.isReady(recognizerStream)) {
+  //     recognizer.decode(recognizerStream);
+  //   }
+  //   const isEndpoint = recognizer.isEndpoint(recognizerStream);
+  //   const text = recognizer.getResult(recognizerStream).text;
+
+  //   if (text.length > 0) {
+  //     lastText = text;
+  //   }
+
+  //   if (isEndpoint) {
+  //     if (text.length > 0) {
+  //       lastText = text;
+  //       segmentIndex += 1;
+  //     }
+  //     recognizer.reset(recognizerStream);
+  //   }
+  //   if (lastText) console.log(lastText);
+  // });
+
+  // ipcMain.handle('ARS_STREAM_END', () => {
+  //   if (!recognizerStream) return;
+  //   // tail padding
+  //   const floatSamples = new Float32Array(recognizer.config.featConfig.sampleRate * 0.5);
+  //   recognizerStream.acceptWaveform(recognizer.config.featConfig.sampleRate, floatSamples);
+  //   while (recognizer.isReady(recognizerStream)) {
+  //     recognizer.decode(recognizerStream);
+  //   }
+  //   const text = recognizer.getResult(recognizerStream).text;
+  //   if (text.length > 0) {
+  //     lastText = text;
+  //     // console.log(segmentIndex, lastText);
+  //   }
+  //   console.log(lastText);
+  //   recognizerStream?.inputFinished();
+  //   recognizerStream?.free();
+  //   recognizerStream = null;
+  //   console.log(lastText);
+  // });
 
   return mainWindow;
 }

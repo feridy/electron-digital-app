@@ -1,6 +1,6 @@
 {
   "wakeUpStr": "你好晓知",
-  "idleDuration": 60,
+  "idleDuration": 600,
   "needWeakSpaceTime": 20,
   "saveSendAudio": true
 }
