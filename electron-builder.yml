@@ -8,6 +8,7 @@ extraFiles:
   - db
   - configs
   - videos
+  - sherpa-onnx
 files:
   - "!**/.vscode/*"
   - "!src/*"
