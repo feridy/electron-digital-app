@@ -21,6 +21,8 @@ asarUnpack:
 win:
   executableName: digital-app
 nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
