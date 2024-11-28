@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router';
-import { onMounted, onUnmounted } from 'vue';
-function onKeydown(e: KeyboardEvent) {
-  console.log(e.key);
-}
+// import { onMounted, onUnmounted } from 'vue';
+// function onKeydown(e: KeyboardEvent) {
+//   console.log(e.key);
+// }
 
-onMounted(() => {
-  window.addEventListener('keydown', onKeydown);
-});
+// onMounted(() => {
+//   window.addEventListener('keydown', onKeydown);
+// });
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', onKeydown);
-});
+// onUnmounted(() => {
+//   window.removeEventListener('keydown', onKeydown);
+// });
 </script>
 
 <template>

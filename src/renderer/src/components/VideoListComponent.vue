@@ -6,7 +6,7 @@ import { Parallax, Controller, Autoplay } from 'swiper/modules';
 import { CloseOutlined, ArrowLeftOutlined } from '@ant-design/icons-vue';
 // Import Swiper styles
 import 'swiper/css';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
@@ -31,7 +31,7 @@ function onPlayVideo(src: string) {
     player = videojs(videoPlayer.value!, {
       autoplay: true,
       loop: true,
-      controls: true,
+      controls: false,
       fluid: true
     });
   }
@@ -48,6 +48,13 @@ function onCloseVideo() {
   }
   player.pause();
   playVideo.value = false;
+}
+
+function onKeydown(e: KeyboardEvent) {
+  // 按空格就进行切换
+  if (e.keyCode === 32) {
+    router.push('/');
+  }
 }
 
 watch(
@@ -67,6 +74,7 @@ onMounted(async () => {
   const list = await window.api.getVideos();
   videos.value = list;
   console.log(`-------------进入到了视频播放页面--------------`);
+  window.addEventListener('keydown', onKeydown);
   onPlayVideo(list[0].video);
 
   const prev = [...list];
@@ -83,6 +91,10 @@ onMounted(async () => {
 
   nextVideos.value = next;
   preVideos.value = prev;
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown);
 });
 </script>
 

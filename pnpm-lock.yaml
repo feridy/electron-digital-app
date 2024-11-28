@@ -128,6 +128,9 @@ importers:
       three-stdlib:
         specifier: ^2.34.0
         version: 2.34.0(three@0.170.0)
+      typed.js:
+        specifier: ^2.1.0
+        version: 2.1.0
       unified:
         specifier: ^11.0.5
         version: 11.0.5
@@ -3351,6 +3354,9 @@ packages:
   type-fest@0.20.2:
     resolution: {integrity: sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ==}
     engines: {node: '>=10'}
+
+  typed.js@2.1.0:
+    resolution: {integrity: sha512-bDuXEf7YcaKN4g08NMTUM6G90XU25CK3bh6U0THC/Mod/QPKlEt9g/EjvbYB8x2Qwr2p6J6I3NrsoYaVnY6wsQ==}
 
   typescript@5.5.3:
     resolution: {integrity: sha512-/hreyEujaB0w76zKo6717l3L0o/qEUtRgdvUBvlkhoWeOVMjMuHNHk0BRBzikzuGDqNmPQbg5ifMEqsHLiIUcQ==}
@@ -7255,6 +7261,8 @@ snapshots:
     optional: true
 
   type-fest@0.20.2: {}
+
+  typed.js@2.1.0: {}
 
   typescript@5.5.3: {}
 

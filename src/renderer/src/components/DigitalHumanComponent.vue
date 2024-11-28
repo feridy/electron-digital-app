@@ -22,6 +22,7 @@ const isStartSpeaking = ref(false);
 const showAnswer = ref(false);
 const commandText = ref('');
 const isWakeUp = ref(false);
+const tipEl = ref<HTMLSpanElement>();
 const audioRef = ref<HTMLAudioElement>();
 const actions: Record<string, THREE.AnimationAction> = {};
 let bScroll: BScroll;
@@ -162,6 +163,13 @@ async function initHuman() {
 function onAudioPay() {}
 function onAudioPause() {}
 
+function onKeydown(e: KeyboardEvent) {
+  // 按空格就进行切换
+  if (e.keyCode === 32) {
+    router.push('/video');
+  }
+}
+
 watch(
   () => showVideoMenus.value,
   (val) => {
@@ -216,6 +224,7 @@ watch(isWakeUp, (val) => {
 
 onMounted(async () => {
   console.log(`-------------进入到了AI数字人页面--------------`);
+  window.addEventListener('keydown', onKeydown);
   try {
     let sendCommandTimeId;
     let count = 0;
@@ -311,9 +320,17 @@ onMounted(async () => {
   } catch (error) {
     console.log(error);
   }
+
+  const showAnswerEl = scrollEl.value;
+  if (showAnswerEl) {
+    bScroll = new BScroll(showAnswerEl, {
+      scrollY: true
+    });
+  }
 });
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown);
   vad?.destroy();
   renderer?.dispose();
   scene?.removeFromParent();
@@ -325,6 +342,7 @@ onUnmounted(() => {
   store.audioPlayer?.destroy();
   store.setAudioPlayer(null);
   window.removeEventListener('resize', handleResize);
+  bScroll?.destroy();
 });
 </script>
 
@@ -356,8 +374,8 @@ onUnmounted(() => {
       enter-active-class="animate__animated animate__fadeIn animate__faster"
       leave-active-class="animate__animated animate__fadeOut animate__faster"
     >
-      <div class="will-wakeup-tip" v-if="!isWakeUp">
-        <span>请说{{ wekaUpStr }}，来唤醒我，为您解答</span>
+      <div class="will-wakeup-tip" v-if="!isWakeUp && wekaUpStr">
+        <span ref="tipEl">{{ `请说${wekaUpStr}，来唤醒我，为您解答` }}</span>
       </div>
     </Transition>
     <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" v-if="isWakeUp" />
@@ -393,6 +411,7 @@ onUnmounted(() => {
       background-repeat: no-repeat;
       background-position: center;
       z-index: 100;
+      font-family: 'HEAVY';
     }
 
     &-text {
@@ -416,17 +435,10 @@ onUnmounted(() => {
   .ai-answer {
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(1058 / 1080 * 100vw);
-    height: calc(356 / 1080 * 100vw);
-    max-width: 1058px;
-    max-height: 356px;
-    background-image: url('../assets/images/ai-answer-bg.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-    padding: 60px 40px 40px 40px;
+    left: 40px;
+    transform: translate(0, -50%);
+    width: 38%;
+    max-height: 50%;
 
     &-view {
       width: 100%;
@@ -436,9 +448,12 @@ onUnmounted(() => {
 
     &-text {
       font-weight: 500;
-      font-size: 34px;
+      font-size: 28px;
       color: #fff9cb;
       line-height: 1.4;
+      text-indent: 2em;
+      text-align: justify;
+      font-family: 'HEAVY';
     }
   }
 }
@@ -458,23 +473,21 @@ onUnmounted(() => {
 
 .will-wakeup-tip {
   position: absolute;
-  bottom: 120px;
-  left: 50%;
-  transform: translate(-50%, 0);
-  width: 870px;
-  height: 129px;
+  top: 50%;
+  right: 40px;
+  transform: translate(0, -50%);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 26px;
   font-weight: 600;
-  color: #fff;
-  background-image: url('../assets/images/answer-bg.png');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+  color: #fff9cb;
   > span {
+    writing-mode: vertical-rl;
+    letter-spacing: 4px;
     font-size: 26px;
     font-weight: 600;
+    font-family: 'HEAVY';
   }
 }
 </style>

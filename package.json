@@ -61,6 +61,7 @@
     "swiper": "^11.1.5",
     "three": "^0.170.0",
     "three-stdlib": "^2.34.0",
+    "typed.js": "^2.1.0",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
     "uuid": "^10.0.0",
