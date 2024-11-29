@@ -2,5 +2,6 @@
   "wakeUpStr": "你好晓知",
   "idleDuration": 600,
   "needWeakSpaceTime": 20,
-  "saveSendAudio": true
+  "saveSendAudio": true,
+  "vcn": "xiaoyan"
 }

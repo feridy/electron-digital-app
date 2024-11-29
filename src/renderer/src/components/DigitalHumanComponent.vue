@@ -188,7 +188,8 @@ watch(
     nextTick(() => {
       bScroll?.refresh();
       if (bScroll?.enabled) {
-        bScroll?.scrollTo(0, bScroll.maxScrollY, 600);
+        // console.log(bScroll);
+        bScroll?.scrollTo(bScroll.minScrollX, 0, 600);
       }
     });
   }
@@ -229,7 +230,8 @@ onMounted(async () => {
     let sendCommandTimeId;
     let count = 0;
     let idle = 0;
-    store.setAudioPlayer(new AudioPlayer());
+    const audioPlayer = new AudioPlayer();
+    store.setAudioPlayer(audioPlayer);
     await initHuman();
     vad = await useVAD(
       () => {
@@ -317,6 +319,9 @@ onMounted(async () => {
       .split('|')
       .map((item) => `“${item}”`)
       .join('、');
+    audioPlayer.initTTSConfig({
+      vcn: config.value.vcn
+    });
   } catch (error) {
     console.log(error);
   }
@@ -324,7 +329,7 @@ onMounted(async () => {
   const showAnswerEl = scrollEl.value;
   if (showAnswerEl) {
     bScroll = new BScroll(showAnswerEl, {
-      scrollY: true
+      scrollX: true
     });
   }
 });
@@ -435,12 +440,18 @@ onUnmounted(() => {
   .ai-answer {
     position: absolute;
     top: 50%;
-    left: 40px;
+    right: 20px;
     transform: translate(0, -50%);
-    width: 38%;
-    max-height: 50%;
+    width: 30%;
+    height: 50%;
+    /* display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center; */
 
     &-view {
+      display: flex;
+      justify-content: flex-end;
       width: 100%;
       height: 100%;
       overflow: hidden;
@@ -454,6 +465,8 @@ onUnmounted(() => {
       text-indent: 2em;
       text-align: justify;
       font-family: 'HEAVY';
+      writing-mode: vertical-rl;
+      letter-spacing: 2px;
     }
   }
 }
@@ -474,7 +487,7 @@ onUnmounted(() => {
 .will-wakeup-tip {
   position: absolute;
   top: 50%;
-  right: 40px;
+  left: 40px;
   transform: translate(0, -50%);
   display: flex;
   justify-content: center;
