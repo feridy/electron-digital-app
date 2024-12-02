@@ -189,7 +189,7 @@ watch(
       bScroll?.refresh();
       if (bScroll?.enabled) {
         // console.log(bScroll);
-        bScroll?.scrollTo(bScroll.minScrollX, 0, 600);
+        bScroll?.scrollTo(0, bScroll.maxScrollY, 600);
       }
     });
   }
@@ -329,7 +329,7 @@ onMounted(async () => {
   const showAnswerEl = scrollEl.value;
   if (showAnswerEl) {
     bScroll = new BScroll(showAnswerEl, {
-      scrollX: true
+      scrollY: true
     });
   }
 });
@@ -451,7 +451,8 @@ onUnmounted(() => {
 
     &-view {
       display: flex;
-      justify-content: flex-end;
+      align-items: center;
+      /* justify-content: flex-end; */
       width: 100%;
       height: 100%;
       overflow: hidden;
@@ -462,11 +463,13 @@ onUnmounted(() => {
       font-size: 28px;
       color: #fff9cb;
       line-height: 1.4;
-      text-indent: 2em;
       text-align: justify;
       font-family: 'HEAVY';
-      writing-mode: vertical-rl;
-      letter-spacing: 2px;
+      ::v-deep(p) {
+        text-indent: 2em;
+      }
+      /* writing-mode: vertical-rl;
+      letter-spacing: 2px; */
     }
   }
 }
