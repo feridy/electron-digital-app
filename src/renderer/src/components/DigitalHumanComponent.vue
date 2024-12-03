@@ -12,6 +12,7 @@ import { useStore } from '@renderer/stores';
 import { AudioPlayer, AudioPlayerEventKey } from '../player';
 import BScroll from '@better-scroll/core';
 import { useRouter } from 'vue-router';
+import { Modal } from 'ant-design-vue';
 
 let vad: MicVAD | null = null;
 const router = useRouter();
@@ -24,6 +25,8 @@ const commandText = ref('');
 const isWakeUp = ref(false);
 const tipEl = ref<HTMLSpanElement>();
 const audioRef = ref<HTMLAudioElement>();
+const mountAudioRef = ref<HTMLAudioElement>();
+const mountAudioPlayEnd = ref(false);
 const actions: Record<string, THREE.AnimationAction> = {};
 let bScroll: BScroll;
 let scene: THREE.Scene;
@@ -38,7 +41,7 @@ let showVideoMenuTimeId;
 
 const wekaUpStr = ref<string>('');
 
-async function initHuman() {
+async function initHuman(modelPath = './scene.glb') {
   let clock: THREE.Clock;
   let camera: THREE.PerspectiveCamera;
 
@@ -49,7 +52,8 @@ async function initHuman() {
 
   clock = new THREE.Clock();
   camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 1200);
-  camera.position.set(0, 0.02, 2.3);
+  camera.position.set(0, 0.02, 2.1);
+  // camera.position.set(0, 0.2, 1);
   scene = new THREE.Scene();
 
   const hemispLight = new THREE.HemisphereLight(0xffffff, 0x8d8d8d, 1.4);
@@ -67,7 +71,7 @@ async function initHuman() {
   renderer.setAnimationLoop(renderLoop);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
-  const gltf = await new GLTFLoader().loadAsync('./scene.glb');
+  const gltf = await new GLTFLoader().loadAsync(modelPath);
   const model = gltf.scene;
 
   scene.add(model);
@@ -75,7 +79,7 @@ async function initHuman() {
   mixer = new THREE.AnimationMixer(model);
 
   model.traverseVisible((item) => {
-    if ((item as any).isMesh && item.name === 'tou_1') {
+    if ((item as any).isMesh && item.name === 'face') {
       // console.log(item);
       mesh = item as THREE.Mesh;
     }
@@ -110,7 +114,7 @@ async function initHuman() {
 
     if (lipsync && lipsync.isWorking && mesh) {
       if (mesh.morphTargetDictionary) {
-        const kiss = mesh.morphTargetDictionary?.['blendShape1.kiss'];
+        // const kiss = mesh.morphTargetDictionary?.['blendShape1.weixiao'];
         const lips = mesh.morphTargetDictionary?.['blendShape1.lips'];
         const mouth = mesh.morphTargetDictionary?.['blendShape1.mouth'];
         const bizui = mesh.morphTargetDictionary?.['blendShape1.bizui'];
@@ -118,32 +122,28 @@ async function initHuman() {
           // console.log(lipsync.blendShapes);
           mesh.morphTargetInfluences[mouth] = Number.isNaN(lipsync.blendShapes.blendShapeMouth)
             ? 0
+            : lipsync.blendShapes.blendShapeMouth;
+          mesh.morphTargetInfluences[lips] = Number.isNaN(lipsync.blendShapes.blendShapeLips)
+            ? 0
             : lipsync.blendShapes.blendShapeLips;
-          mesh.morphTargetInfluences[lips] = Number.isNaN(lipsync.blendShapes.blendShapeKiss)
-            ? 0
-            : Math.max(lipsync.blendShapes.blendShapeKiss - 0.1, 0);
-          mesh.morphTargetInfluences[kiss] = Number.isNaN(lipsync.blendShapes.blendShapeKiss)
-            ? 0
-            : lipsync.blendShapes.blendShapeKiss;
+          // mesh.morphTargetInfluences[kiss] = Number.isNaN(lipsync.blendShapes.blendShapeKiss)
+          //   ? 0
+          //   : lipsync.blendShapes.blendShapeKiss;
 
-          mesh.morphTargetInfluences[bizui] = 0.9;
+          mesh.morphTargetInfluences[bizui] = 0.5;
         }
       }
     } else if (!lipsync?.isWorking && mesh) {
       if (mesh.morphTargetDictionary) {
-        const kiss = mesh.morphTargetDictionary?.['blendShape1.kiss'];
+        const kiss = mesh.morphTargetDictionary?.['blendShape1.weixiao'];
         const lips = mesh.morphTargetDictionary?.['blendShape1.lips'];
         const mouth = mesh.morphTargetDictionary?.['blendShape1.mouth'];
         const bizui = mesh.morphTargetDictionary?.['blendShape1.bizui'];
         if (mesh.morphTargetInfluences) {
-          mesh.morphTargetInfluences[mouth] = 0;
-          mesh.morphTargetInfluences[lips] = 0;
-          mesh.morphTargetInfluences[kiss] = 0;
-          if (mesh.morphTargetInfluences[bizui] > 0) {
-            mesh.morphTargetInfluences[bizui] -= 0.01;
-          } else {
-            mesh.morphTargetInfluences[bizui] = 0;
-          }
+          mesh.morphTargetInfluences[mouth] = Math.max(mesh.morphTargetInfluences[mouth] - 0.01, 0);
+          mesh.morphTargetInfluences[lips] = Math.max(mesh.morphTargetInfluences[lips] - 0.01, 0);
+          mesh.morphTargetInfluences[kiss] = Math.max(mesh.morphTargetInfluences[kiss] - 0.01, 0);
+          mesh.morphTargetInfluences[bizui] = Math.max(mesh.morphTargetInfluences[bizui] - 0.01, 0);
         }
       }
     }
@@ -167,6 +167,9 @@ function onKeydown(e: KeyboardEvent) {
   // 按空格就进行切换
   if (e.keyCode === 32) {
     router.push('/video');
+  }
+  if (e.keyCode === 71) {
+    router.push('/generate');
   }
 }
 
@@ -232,7 +235,7 @@ onMounted(async () => {
     let idle = 0;
     const audioPlayer = new AudioPlayer();
     store.setAudioPlayer(audioPlayer);
-    await initHuman();
+    await initHuman('./gxrb.glb');
     vad = await useVAD(
       () => {
         isStartSpeaking.value = true;
@@ -273,6 +276,7 @@ onMounted(async () => {
         console.log('--------唤醒成功后的回调执行----------');
         count = 0;
         isWakeUp.value = true;
+        store.audioPlayer?.stop();
       }
     );
     vad.start();
@@ -320,10 +324,21 @@ onMounted(async () => {
       .map((item) => `“${item}”`)
       .join('、');
     audioPlayer.initTTSConfig({
-      vcn: config.value.vcn
+      vcn: config.value.vcn,
+      volume: config.value.volume,
+      speed: config.value.speed,
+      pitch: config.value.pitch
     });
-  } catch (error) {
+
+    setTimeout(() => {
+      store.audioPlayer?.playAudioEl(mountAudioRef.value!);
+      setTimeout(() => {
+        vad?.start();
+      }, 500);
+    }, 30);
+  } catch (error: any) {
     console.log(error);
+    Modal.error(error?.message);
   }
 
   const showAnswerEl = scrollEl.value;
@@ -379,11 +394,22 @@ onUnmounted(() => {
       enter-active-class="animate__animated animate__fadeIn animate__faster"
       leave-active-class="animate__animated animate__fadeOut animate__faster"
     >
-      <div class="will-wakeup-tip" v-if="!isWakeUp && wekaUpStr">
+      <div class="will-wakeup-tip" v-if="!isWakeUp && wekaUpStr && mountAudioPlayEnd">
         <span ref="tipEl">{{ `请说${wekaUpStr}，来唤醒我，为您解答` }}</span>
       </div>
     </Transition>
     <audio src="./weakup_audio.wav" style="display: none" ref="audioRef" v-if="isWakeUp" />
+    <audio
+      src="./start_audio.wav"
+      style="display: none"
+      ref="mountAudioRef"
+      @ended="
+        () => {
+          mountAudioPlayEnd = true;
+          // isWakeUp = true;
+        }
+      "
+    />
     <div class="show-video-list" @click="router.push('/video')" v-if="showVideoMenus">
       <AppstoreOutlined />
     </div>

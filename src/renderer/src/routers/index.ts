@@ -1,6 +1,7 @@
 import { createWebHashHistory, createRouter } from 'vue-router';
 import HomePage from '../views/Home.vue';
 import Video from '@renderer/views/Video.vue';
+import GenerateAudio from '@renderer/views/GenerateAudio.vue';
 
 const routes = [
   {
@@ -19,6 +20,15 @@ const routes = [
     component: Video,
     meta: {
       title: 'Video page',
+      enterActiveClass: 'animate__zoomIn',
+      leaveActiveClass: 'animate__zoomOut'
+    }
+  },
+  {
+    path: '/generate',
+    component: GenerateAudio,
+    meta: {
+      title: 'Generate Audio Page',
       enterActiveClass: 'animate__zoomIn',
       leaveActiveClass: 'animate__zoomOut'
     }

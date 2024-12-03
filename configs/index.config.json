@@ -3,5 +3,8 @@
   "idleDuration": 600,
   "needWeakSpaceTime": 20,
   "saveSendAudio": true,
-  "vcn": "xiaoyan"
+  "---vcn---": "x4_lingxiaoyun_talk | x4_xiaoguo | x4_lingxiaoshan_profnews | x2_xiaowan | x4_yuexiaoni_assist|x4_xiaoling|x4_xiaoxue",
+  "vcn": "x4_lingxiaoshan_profnews",
+  "volume": 50,
+  "ent": "intp65"
 }

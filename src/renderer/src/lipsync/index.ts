@@ -98,15 +98,21 @@ export class LipSync {
         energyBin[m] /= this.indicesFrequencies[m + 1] - this.indicesFrequencies[m];
       }
       if (energyBin[1] > 0.2) {
-        _blendShapeKiss = 1 - 2 * energyBin[2];
+        _blendShapeKiss = Math.max(Math.min(1 - 2 * energyBin[2], 1), 0);
       } else {
-        _blendShapeKiss = (1 - 2 * energyBin[2]) * 5 * energyBin[1];
+        _blendShapeKiss = Math.max(Math.min((1 - 2 * energyBin[2]) * 5 * energyBin[1], 1), 0);
       }
 
       // _blendShapeKiss += energyBin[0] / 4;
+      // console.log(energyBin);
 
-      _blendShapeLips = Math.min(3 * energyBin[3] + energyBin[0], 1);
-      _blendShapeMouth = Math.min(2 * (energyBin[1] + energyBin[3]) + energyBin[0] / 2, 1);
+      // BlendShapeLips = 3 * EnergyBinMale[3];
+      // BlenShapeMouth = 0.8 * (EnergyBinMale[1] - EnergyBinMale[3]);
+      _blendShapeLips = Math.max(Math.min(3 * energyBin[3], 1), 0);
+      _blendShapeMouth = Math.max(Math.min(1 * (energyBin[1] - energyBin[3]), 1), 0);
+
+      // _blendShapeLips = Math.min(3 * energyBin[3] + energyBin[0], 1);
+      // _blendShapeMouth = Math.min(2 * (energyBin[1] + energyBin[3]) + energyBin[0] / 2, 1);
 
       this.energyBin = Array.from(energyBin);
 

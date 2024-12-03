@@ -123,9 +123,10 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       auf: 'audio/L16;rate=16000',
       vcn: (window as any).xfConfig?.vcn ?? 'xiaoyan',
       speed: 50,
-      volume: 100,
+      volume: 50,
       pitch: 50,
       bgs: 0,
+      ent: 'intp65',
       tte: 'UTF8'
     },
     data: {
@@ -139,6 +140,9 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
     this.audioContext = new AudioContext();
 
     this.lipsync = new LipSync(this.audioContext, {
+      threshold: 0.6,
+      pitch: 0.7,
+      smoothness: 0.5,
       update: () => {
         const now = window.performance.now();
         if (this.oldTime) {
@@ -186,6 +190,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
         clearTimeout(timeoutId);
         if (this.isRest) return;
         const sendParams = _.cloneDeep(this.requestParams);
+        console.log(sendParams);
         sendParams.data.text = Base64.encode(text);
         sendParams.data.status = 2;
         this.ws?.send(JSON.stringify(sendParams));
@@ -302,35 +307,32 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       const rawAudioData: number[] = [];
       this.ws = new WebSocket(url);
       this.ws.onopen = () => {
-        const sendParams = _.cloneDeep(requestParams);
-        sendParams.payload.text.text = Base64.encode(text);
-        sendParams.payload.text.status = 2;
+        const sendParams = _.cloneDeep(this.requestParams);
+        sendParams.data.text = Base64.encode(text);
+        sendParams.data.status = 2;
         this.ws?.send(JSON.stringify(sendParams));
+        // this.ws?.send(JSON.stringify(sendParams));
       };
       this.ws.onmessage = (event) => {
         // 处理相关的音频消息
         const message = event.data;
         const json = JSON.parse(message);
         // tts服务器相关的错误消息
-        if (!json.header || json.header.code !== 0) {
+        if (!json || json.code !== 0) {
           Modal.error({
             title: '错误',
-            content: `获取结果失败，请根据code查证问题原因;失败Code：${json.header.code}`
+            content: `获取结果失败，请根据code查证问题原因;失败Code：${json.code}`
           });
           return;
         }
 
-        if (json.payload && json.payload.audio) {
+        if (json.data && json.data.audio) {
           // 获取音频的Buffer数据
-          const result = transToAudioData(
-            json.payload.audio.audio,
-            json.payload.audio.sample_rate,
-            48000
-          );
+          const result = transToAudioData(json.data.audio, 16000, 48000);
           rawAudioData.push(...result.rawAudioData);
         }
         // 完成了一段话的TTS
-        if (json.header.status === 2) {
+        if (json.data.status === 2) {
           // 关闭当前的WS
           this.ws?.close();
           if (rawAudioData.length) {
