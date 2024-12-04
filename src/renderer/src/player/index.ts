@@ -170,7 +170,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
 
   sendWsText(
     text: string,
-    isEnd?: boolean,
+    _isEnd?: boolean,
     options?: {
       onReady?: () => void;
       onmessage?: (fre: { seq: number; data: Float32Array }) => void;
@@ -215,6 +215,13 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
             type: AudioPlayerEventKey.WSError,
             message: `获取结果失败，请根据code查证问题原因;失败Code：${json?.code}`
           });
+          // 进行错误提示，TTS转换失败
+          Modal.error({
+            title: '错误',
+            content: `获取结果失败，请根据code查证问题原因;失败Code：${json?.code}`
+          });
+           // 关闭当前的WS
+          this.ws?.close();
           return;
         }
         if (json.data && json.data.pybuf?.text) {
