@@ -271,12 +271,17 @@ onMounted(async () => {
       () => {
         isStartSpeaking.value = false;
         console.log('---------语音输入太短了------------');
+        mountAudioRef.value?.play();
       },
       () => {
         console.log('--------唤醒成功后的回调执行----------');
         count = 0;
         isWakeUp.value = true;
         store.audioPlayer?.stop();
+      },
+      () => {
+        console.log('--------用声音输入进来了----------');
+        // mountAudioRef.value?.pause();
       }
     );
     vad.start();
@@ -403,6 +408,7 @@ onUnmounted(() => {
       src="./start_audio.wav"
       style="display: none"
       ref="mountAudioRef"
+      @pause="() => (mountAudioPlayEnd = true)"
       @ended="
         () => {
           mountAudioPlayEnd = true;

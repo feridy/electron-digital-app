@@ -18,7 +18,8 @@ export async function useVAD(
   onUpdate?: (resultText: string) => void,
   onEnd?: () => void,
   onVADMisfire?: () => void,
-  onWeakUp?: () => void
+  onWeakUp?: () => void,
+  onInputStart?: () => void
 ) {
   if (!window.navigator.mediaDevices) {
     throw new Error('MediaDevices is not supported');
@@ -74,6 +75,7 @@ export async function useVAD(
       isSpeaking = true;
       speechStartTime = 0;
       startWs = false;
+      onInputStart?.();
     },
     // 每帧触发的事件
     onFrameProcessed(_probabilities, frame, audioBuffer) {

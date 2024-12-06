@@ -180,6 +180,18 @@ export const useStore = defineStore('pageStore', () => {
     audioPlayer.value = player;
   }
 
+  // 进行可以打断这在进行播放中的问题处理
+  function handleInterrupt() {
+    // 针对还在进行处理中的问题的处理
+    if (isHandling.value) {
+      ChatControllerPool.stopAll();
+      postAudio.value.length = 0;
+      audioPlayer.value?.reset();
+      // vadInstance.value?.start();
+      // isHandling.value = false;
+    }
+  }
+
   watch(
     () => audioPlayer.value,
     () => {
@@ -241,7 +253,7 @@ export const useStore = defineStore('pageStore', () => {
             vadInstance.value?.start();
           }
 
-          if (isGetChatMessageStreamFinish && !audioPlayer.value?.ws) {
+          if (isGetChatMessageStreamFinish.value && !audioPlayer.value?.ws) {
             showAiAnswer.value = getChatAnswer.value;
             // 对于最新的问答会话方式的展示问答
             const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
@@ -276,93 +288,6 @@ export const useStore = defineStore('pageStore', () => {
     }
   );
 
-  // onMounted(() => {
-  //   let startTime = 0;
-  //   let diff = 0;
-  //   // 一段文本完成了TTS转义后的处理
-  //   audioPlayer.value.addEventListener(AudioPlayerEventKey.WSClosed, () => {
-  //     if (isGetChatMessageStreamFinish.value) {
-  //       const text = postAudio.value.join('');
-  //       postAudio.value.length = 0;
-  //       if (text) {
-  //         audioPlayer.value.sendWsText(text, true);
-  //         return;
-  //       }
-  //     }
-  //     const next = postAudio.value.shift();
-  //     if (next) {
-  //       audioPlayer.value.sendWsText(next, isGetChatMessageStreamFinish.value);
-  //     }
-  //   });
-  //   audioPlayer.value.addEventListener(AudioPlayerEventKey.WSError, () => {
-  //     vadInstance.value?.start();
-  //     const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-  //     robotChatMessage.message = showAiAnswer.value;
-  //     robotChatMessage.isAudioEnd = true;
-  //     robotChatMessage.isLoading = false;
-  //     isHandling.value = false;
-  //   });
-  //   audioPlayer.value.addEventListener(AudioPlayerEventKey.WSTimeout, (event) => {
-  //     audioPlayer.value.reset();
-  //     vadInstance.value?.start();
-  //     const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-  //     robotChatMessage.message = showAiAnswer.value;
-  //     robotChatMessage.isAudioEnd = true;
-  //     robotChatMessage.isLoading = false;
-  //     isHandling.value = false;
-  //     if (isGetChatMessageStreamFinish) {
-  //       robotChatMessage.message = showAiAnswer.value;
-  //     } else {
-  //       robotChatMessage.message = event.endText;
-  //     }
-  //   });
-  //   audioPlayer.value.addEventListener(AudioPlayerEventKey.AudioPlay, () => {
-  //     vadInstance.value?.pause();
-  //     startTime = Date.now();
-  //     // 对于最新的问答会话方式的展示问答
-  //     const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-  //     if (robotChatMessage) {
-  //       robotChatMessage.isLoading = false;
-  //       isHandling.value = false;
-  //     }
-  //   });
-  //   audioPlayer.value.addEventListener(AudioPlayerEventKey.AudioStop, () => {
-  //     setTimeout(() => {
-  //       if (!postAudio.value.length) {
-  //         console.log('播放的音频中断');
-  //         vadInstance.value?.start();
-  //       }
-  //       if (isGetChatMessageStreamFinish && !audioPlayer.value.ws) {
-  //         showAiAnswer.value = getChatAnswer.value;
-  //         // 对于最新的问答会话方式的展示问答
-  //         const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-  //         if (robotChatMessage) {
-  //           robotChatMessage.message = showAiAnswer.value;
-  //           robotChatMessage.isAudioEnd = true;
-  //           isHandleCompleted.value = true;
-  //           currentAnswerSessionId.value = '';
-  //         }
-  //       }
-  //     }, 0);
-  //   });
-  //   audioPlayer.value.addEventListener(AudioPlayerEventKey.AudioTimeupdate, () => {
-  //     const currentTime = Date.now();
-  //     diff += (currentTime - startTime) / 100;
-  //     if (diff > 1.5) {
-  //       showAiAnswer.value = getChatAnswer.value.slice(0, answerTextIndex.value);
-  //       // 对于最新的问答会话方式的展示问答
-  //       const robotChatMessage = chatMessages.value[chatMessages.value.length - 1];
-  //       if (robotChatMessage) {
-  //         robotChatMessage.isLoading = false;
-  //         robotChatMessage.message = showAiAnswer.value;
-  //         answerTextIndex.value += 1;
-  //         diff = 0;
-  //       }
-  //     }
-  //     startTime = currentTime;
-  //   });
-  // });
-
   return {
     isLoadHuman,
     audioPlayer,
@@ -373,7 +298,8 @@ export const useStore = defineStore('pageStore', () => {
     reset,
     setVad,
     sendMicText,
-    humanLoadSuccess
+    humanLoadSuccess,
+    handleInterrupt
   };
 });
 
