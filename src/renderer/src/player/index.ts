@@ -121,7 +121,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
     business: {
       aue: 'raw',
       auf: 'audio/L16;rate=16000',
-      vcn: (window as any).xfConfig?.vcn ?? 'xiaoyan',
+      vcn: 'x4_lingxiaoyu_assist',
       speed: 50,
       volume: 50,
       pitch: 50,
@@ -166,6 +166,10 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       ...this.requestParams.business,
       ...config
     };
+  }
+
+  changeVcn(vcn: string) {
+    this.requestParams.business.vcn = vcn;
   }
 
   sendWsText(
@@ -220,7 +224,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
             title: '错误',
             content: `获取结果失败，请根据code查证问题原因;失败Code：${json?.code}`
           });
-           // 关闭当前的WS
+          // 关闭当前的WS
           this.ws?.close();
           return;
         }
@@ -307,7 +311,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
     }
   }
 
-  downloadAudioFile(text: string, callback?: () => void) {
+  downloadAudioFile(text: string, saveName?: string, callback?: () => void) {
     if (!text) return;
     const url = getWebSocketUrl();
     if (!this.ws) {
@@ -343,7 +347,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
           // 关闭当前的WS
           this.ws?.close();
           if (rawAudioData.length) {
-            downloadWAV(new DataView(new Int16Array(rawAudioData).buffer), 16000, 16);
+            downloadWAV(new DataView(new Int16Array(rawAudioData).buffer), 16000, 16, saveName);
 
             callback?.();
           }
@@ -641,7 +645,12 @@ function encodeWAV(
   return data;
 }
 
-export function downloadWAV(audioData: DataView, sampleRate?: number, oututSampleBits?: number) {
+export function downloadWAV(
+  audioData: DataView,
+  sampleRate?: number,
+  oututSampleBits?: number,
+  name?: string
+) {
   const wavData = encodeWAV(audioData, sampleRate || 44100, 1, oututSampleBits || 16);
   const blob = new Blob([wavData], {
     type: 'audio/wav'
@@ -649,7 +658,7 @@ export function downloadWAV(audioData: DataView, sampleRate?: number, oututSampl
   const defaultName = new Date().getTime();
   const node = document.createElement('a');
   node.href = window.URL.createObjectURL(blob);
-  node.download = `${defaultName}.wav`;
+  node.download = `${name || defaultName}.wav`;
   node.click();
   node.remove();
 }

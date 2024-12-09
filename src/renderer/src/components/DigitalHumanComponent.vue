@@ -399,7 +399,7 @@ onUnmounted(() => {
       enter-active-class="animate__animated animate__fadeIn animate__faster"
       leave-active-class="animate__animated animate__fadeOut animate__faster"
     >
-      <div class="will-wakeup-tip" v-if="!isWakeUp && wekaUpStr && mountAudioPlayEnd">
+      <div class="will-wakeup-tip" v-if="!isWakeUp && wekaUpStr">
         <span ref="tipEl">{{ `请说${wekaUpStr}，来唤醒我，为您解答` }}</span>
       </div>
     </Transition>
