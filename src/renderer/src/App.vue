@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router';
 import { onMounted, onUnmounted } from 'vue';
+import UpdateComponent from './components/UpdateComponent.vue';
 const router = useRouter();
 function onKeydown(e: KeyboardEvent) {
   if (e.keyCode === 27) {
@@ -28,4 +29,5 @@ onUnmounted(() => {
       <component :is="Component" :key="route.path" />
     </Transition>
   </RouterView>
+  <UpdateComponent />
 </template>

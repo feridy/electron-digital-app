@@ -31,6 +31,16 @@ const api = {
     const json = await fs.readJSON(path.join(process.cwd(), './configs/index.config.json'));
     return json;
   },
+  checkForUpdate: async () => {
+    const version = electronAPI.ipcRenderer.invoke('CHECK_FOR_UPDATE');
+    return version;
+  },
+  startDownloadUpdate: async () => {
+    await electronAPI.ipcRenderer.invoke('DOWNLOAD_UPDATE_NOW');
+  },
+  startInstallUpdate: async () => {
+    await electronAPI.ipcRenderer.invoke('INSTALL_UPDATE_NOW');
+  },
   execute: (...args) => electronAPI.ipcRenderer.invoke('db:execute', ...args)
 };
 

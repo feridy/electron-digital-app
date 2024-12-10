@@ -264,7 +264,7 @@ export const useStore = defineStore('pageStore', () => {
               currentAnswerSessionId.value = '';
             }
           }
-        }, 0);
+        }, 300);
       });
       audioPlayer.value.addEventListener(AudioPlayerEventKey.AudioTimeupdate, () => {
         const currentTime = Date.now();

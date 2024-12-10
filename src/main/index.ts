@@ -6,10 +6,13 @@ import fs from 'fs-extra';
 import icon from '../../resources/icon.png?asset';
 import { createKeywordSpotter } from './sherpa';
 import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
+import { autoUpdater } from 'electron-updater';
 // import { mspLogin, vwSessionBegin } from './msc';
 
 // 初始化log文件
 const log = initMainLog();
+
+autoUpdater.logger = log;
 
 async function createWindow() {
   // Create the browser window.
@@ -121,6 +124,47 @@ async function createWindow() {
     stream.free();
 
     return detectedKeywords.length > 0;
+  });
+
+  // 渲染进行检查更新
+  ipcMain.handle('CHECK_FOR_UPDATE', async () => {
+    const result = await autoUpdater.checkForUpdates();
+    console.log('----------CHECK_FOR_UPDATE----------');
+    console.log(result);
+    return result?.updateInfo.version;
+  });
+  // 开始进行更新下载
+  ipcMain.handle('DOWNLOAD_UPDATE_NOW', async () => {
+    await autoUpdater.downloadUpdate();
+  });
+  // 进行更新安装
+  ipcMain.handle('INSTALL_UPDATE_NOW', async () => {
+    autoUpdater.quitAndInstall();
+  });
+
+  // 当有新版本更新时，通知渲染进程
+  autoUpdater.on('update-available', (info) => {
+    console.log('----------update-available----------', info);
+    mainWindow.webContents.send('UPDATE_AVAILABLE', info.version);
+  });
+  // 更新时下载进度
+  autoUpdater.on('download-progress', (progressObj) => {
+    // progressObj.bytesPerSecond;
+    console.log(progressObj);
+    mainWindow.webContents.send(
+      'UPDATE_PROGRESS',
+      progressObj.percent,
+      progressObj.bytesPerSecond,
+      progressObj.total
+    );
+  });
+  // 更新下载完成
+  autoUpdater.on('update-downloaded', () => {
+    mainWindow.webContents.send('UPDATE_DOWNLOADED');
+  });
+  // 更新错误
+  autoUpdater.on('error', (err) => {
+    mainWindow.webContents.send('UPDATE_ERROR', err);
   });
 
   // ipcMain.handle('ARS_STREAM_START', () => {

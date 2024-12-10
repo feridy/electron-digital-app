@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="../../preload" />
 
 interface Api {
   tcpConnectState: boolean;
@@ -15,5 +16,5 @@ declare module '*.vue' {
 
 interface Window {
   token?: string;
-  api: Api;
+  // api: Api;
 }
