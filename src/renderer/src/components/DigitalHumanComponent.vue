@@ -175,6 +175,14 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
+async function onDeviceChange() {
+  const devices = await window.navigator.mediaDevices.enumerateDevices();
+  const mic = devices.find((device) => device.kind === 'audioinput');
+  if (mic || (!mic && vad)) {
+    window.location.reload();
+  }
+}
+
 watch(
   () => showVideoMenus.value,
   (val) => {
@@ -231,10 +239,11 @@ watch(isWakeUp, (val) => {
 onMounted(async () => {
   console.log(`-------------进入到了AI数字人页面--------------`);
   window.addEventListener('keydown', onKeydown);
+  window.navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
+  let sendCommandTimeId;
+  let count = 0;
+  let idle = 0;
   try {
-    let sendCommandTimeId;
-    let count = 0;
-    let idle = 0;
     const audioPlayer = new AudioPlayer();
     store.setAudioPlayer(audioPlayer);
     await initHuman('./gxrb.glb');
@@ -297,37 +306,6 @@ onMounted(async () => {
       return {};
     });
 
-    resetTimeout = setInterval(() => {
-      // idle时没有人提问时等待3分钟切换的视频播放页面
-      if (!isWakeUp.value) {
-        if (idle >= (config.value.idleDuration || 180)) {
-          console.log(idle);
-          router.push('/video');
-        }
-        idle += 1;
-      } else {
-        idle = 0;
-      }
-
-      if (count >= (config.value.needWeakSpaceTime || 20)) {
-        count = 0;
-        if (
-          !showAnswer.value &&
-          !isStartSpeaking.value &&
-          !store.isHandling &&
-          (vad as any).getWeakState()
-        ) {
-          console.log('--------需要重新进行唤醒--------');
-          store.reset();
-          (vad as any)?.setWeakState(false);
-          isWakeUp.value = false;
-        }
-        return;
-      }
-
-      count += 1;
-    }, 1000);
-
     wekaUpStr.value = (config.value.wakeUpStr || import.meta.env.VITE_APP_V_WEEK_STR)
       .split('|')
       .map((item) => `“${item}”`)
@@ -346,10 +324,42 @@ onMounted(async () => {
       }, 500);
     }, 30);
   } catch (error: any) {
-    console.log(error);
-    Modal.error(error?.message);
+    // console.log(error.message);
+    Modal.error({
+      title: '错误',
+      content: error?.message
+    });
   }
+  resetTimeout = setInterval(() => {
+    // idle时没有人提问时等待3分钟切换的视频播放页面
+    if (!isWakeUp.value) {
+      if (idle >= (config.value.idleDuration || 180)) {
+        console.log(idle);
+        router.push('/video');
+      }
+      idle += 1;
+    } else {
+      idle = 0;
+    }
 
+    if (count >= (config.value.needWeakSpaceTime || 20)) {
+      count = 0;
+      if (
+        !showAnswer.value &&
+        !isStartSpeaking.value &&
+        !store.isHandling &&
+        (vad as any)?.getWeakState()
+      ) {
+        console.log('--------需要重新进行唤醒--------');
+        store.reset();
+        (vad as any)?.setWeakState(false);
+        isWakeUp.value = false;
+      }
+      return;
+    }
+
+    count += 1;
+  }, 1000);
   const showAnswerEl = scrollEl.value;
   if (showAnswerEl) {
     bScroll = new BScroll(showAnswerEl, {
@@ -360,6 +370,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown);
+  window.navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
   vad?.destroy();
   renderer?.dispose();
   scene?.removeFromParent();

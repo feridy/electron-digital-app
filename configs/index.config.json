@@ -1,6 +1,6 @@
 {
   "wakeUpStr": "你好晓知",
-  "idleDuration": 600,
+  "idleDuration": 10,
   "needWeakSpaceTime": 20,
   "saveSendAudio": true,
   "vcn": "x4_lingxiaoyu_assist",

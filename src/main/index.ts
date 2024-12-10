@@ -4,7 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initMainLog } from '../log';
 import fs from 'fs-extra';
 import icon from '../../resources/icon.png?asset';
-import { createKeywordSpotter, createOnlineRecognizer } from './sherpa';
+import { createKeywordSpotter } from './sherpa';
 import { mspLogin, qIVWAudioWrite, vwSessionBegin, vwSessionEnd } from './msc';
 // import { mspLogin, vwSessionBegin } from './msc';
 
