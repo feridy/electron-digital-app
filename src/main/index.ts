@@ -50,7 +50,7 @@ async function createWindow() {
   }
 
   // vwSessionBegin();
-  let IS_MSP_LOGIN = false;
+  let IS_MSP_LOGIN = true;
   let MSP_SESSION_ID = '';
   if (!IS_MSP_LOGIN) {
     mspLogin(() => {
@@ -130,7 +130,7 @@ async function createWindow() {
   ipcMain.handle('CHECK_FOR_UPDATE', async () => {
     const result = await autoUpdater.checkForUpdates();
     console.log('----------CHECK_FOR_UPDATE----------');
-    console.log(result);
+    // console.log(result);
     return result?.updateInfo.version;
   });
   // 开始进行更新下载
