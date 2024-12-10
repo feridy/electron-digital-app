@@ -160,7 +160,9 @@ async function initHuman(modelPath = './scene.glb') {
   window.addEventListener('resize', handleResize);
 }
 
-function onAudioPay() {}
+function onAudioPay() {
+  // vad?.start();
+}
 function onAudioPause() {}
 
 function onKeydown(e: KeyboardEvent) {
@@ -243,6 +245,8 @@ onMounted(async () => {
         showAnswer.value = false;
         clearInterval(sendCommandTimeId);
         console.log('----有声音输入进来了----');
+        // 进行声音打断
+        // store.handleInterrupt();
       },
       (text) => {
         commandText.value = text;
@@ -271,7 +275,7 @@ onMounted(async () => {
       () => {
         isStartSpeaking.value = false;
         console.log('---------语音输入太短了------------');
-        mountAudioRef.value?.play();
+        // mountAudioRef.value?.play();
       },
       () => {
         console.log('--------唤醒成功后的回调执行----------');
