@@ -10,14 +10,13 @@ const downloadSpeed = ref(0);
 const willDownloadTotal = ref(0);
 
 async function handleOkClick() {
-  if (!isDownloading.value) {
+  if (!isDownloading.value && !isDownloadEnd.value) {
     isDownloading.value = true;
     downloadProgress.value = 0;
     isDownloadEnd.value = false;
     await window.api.startDownloadUpdate();
-  }
-
-  if (isDownloadEnd.value) {
+  } else if (isDownloadEnd.value) {
+    console.log('开始安装');
     await window.api.startInstallUpdate();
   }
 }
@@ -33,7 +32,8 @@ onMounted(async () => {
   });
 
   window.electron.ipcRenderer.on('UPDATE_PROGRESS', (_, percent, bytesPerSecond, total) => {
-    downloadProgress.value = percent;
+    isDownloading.value = true;
+    downloadProgress.value = Math.ceil(percent * 100) / 100;
     downloadSpeed.value = bytesPerSecond;
     willDownloadTotal.value = total;
   });
@@ -41,6 +41,8 @@ onMounted(async () => {
   window.electron.ipcRenderer.on('UPDATE_DOWNLOADED', () => {
     downloadProgress.value = 100;
     isDownloadEnd.value = true;
+    isDownloading.value = false;
+    console.log('下载完成');
   });
 });
 </script>
@@ -66,10 +68,12 @@ onMounted(async () => {
       />
       <div class="download-status">
         <span style="margin-right: 10px" v-if="!isDownloadEnd">
-          下载速度：{{ downloadSpeed }}mb/s
+          下载速度：{{ (downloadSpeed / (1024 * 1024)).toFixed(2) }}mb/s
         </span>
         <span>
-          下载进度：{{ willDownloadTotal * (downloadProgress / 100) }}mb / {{ willDownloadTotal }}mb
+          下载进度：{{
+            ((willDownloadTotal * (downloadProgress / 100)) / (1024 * 1024)).toFixed(2)
+          }}mb / {{ (willDownloadTotal / (1024 * 1024)).toFixed(2) }}mb
         </span>
       </div>
     </div>

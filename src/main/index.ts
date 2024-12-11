@@ -14,6 +14,8 @@ const log = initMainLog();
 
 autoUpdater.logger = log;
 
+autoUpdater.forceDevUpdateConfig = import.meta.env.DEV;
+
 async function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({

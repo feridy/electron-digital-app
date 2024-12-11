@@ -51,5 +51,6 @@ npmRebuild: false
 publish:
   provider: generic
   url: http://192.168.7.36:9821/packages
+  updaterCacheDirName: ${productName}-updater
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
