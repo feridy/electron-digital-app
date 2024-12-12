@@ -22,8 +22,6 @@ async function handleOkClick() {
 }
 
 onMounted(async () => {
-  await window.api.checkForUpdate();
-
   window.electron.ipcRenderer.on('UPDATE_AVAILABLE', (_, version) => {
     console.log(version);
     newVersion.value = version;
@@ -44,6 +42,8 @@ onMounted(async () => {
     isDownloading.value = false;
     console.log('下载完成');
   });
+
+  await window.api.checkForUpdate();
 });
 </script>
 
