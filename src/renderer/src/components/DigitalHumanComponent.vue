@@ -168,9 +168,9 @@ function onAudioPause() {}
 function onKeydown(e: KeyboardEvent) {
   // 按空格就进行切换
   if (e.keyCode === 32) {
-    router.push('/video');
+    // router.push('/video');
   }
-  if (e.keyCode === 71) {
+  if (e.keyCode === 71 && import.meta.env.DEV) {
     router.push('/generate');
   }
 }

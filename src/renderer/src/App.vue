@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { RouterView, useRouter } from 'vue-router';
+import { RouterView, useRoute, useRouter } from 'vue-router';
 import { onMounted, onUnmounted } from 'vue';
 import UpdateComponent from './components/UpdateComponent.vue';
 const router = useRouter();
+const route = useRoute();
 function onKeydown(e: KeyboardEvent) {
   if (e.keyCode === 27) {
     router.replace('/');
@@ -11,6 +12,14 @@ function onKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown);
+  window.electron.ipcRenderer.on('SPACE_PRESSED', () => {
+    console.log('-----SPACE_PRESSED-----');
+    if (route.path !== '/') {
+      router.replace('/');
+    } else {
+      router.push('/video');
+    }
+  });
 });
 
 onUnmounted(() => {

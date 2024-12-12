@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron';
 import path, { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initMainLog } from '../log';
@@ -242,13 +242,27 @@ app.whenReady().then(async () => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'));
 
-  await createWindow();
+  const mainWindow = await createWindow();
 
-  app.on('activate', function () {
+  const ret = globalShortcut.register('Space', () => {
+    mainWindow.webContents.send('SPACE_PRESSED');
+  });
+
+  if (!ret) {
+    console.log('registration failed');
+  } else {
+    console.log('registration success');
+  }
+
+  app.on('activate', async function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) await createWindow();
   });
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
