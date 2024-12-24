@@ -16,6 +16,8 @@ autoUpdater.logger = log;
 
 autoUpdater.forceDevUpdateConfig = import.meta.env.DEV;
 
+autoUpdater.autoDownload = false;
+
 async function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -137,10 +139,12 @@ async function createWindow() {
   });
   // 开始进行更新下载
   ipcMain.handle('DOWNLOAD_UPDATE_NOW', async () => {
+    console.log('----------DOWNLOAD_UPDATE_NOW----------');
     await autoUpdater.downloadUpdate();
   });
   // 进行更新安装
   ipcMain.handle('INSTALL_UPDATE_NOW', async () => {
+    console.log('----------INSTALL_UPDATE_NOW----------');
     autoUpdater.quitAndInstall();
   });
 

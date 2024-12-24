@@ -189,6 +189,7 @@ export class AudioPlayer extends EventDispatcher<AudioPlayerEventMap> {
       const ws = new WebSocket(url);
       this.ws = ws;
       let timeoutId = -1;
+      text = text.replace('僮', '僮[=zhuang4]');
 
       this.ws.onopen = () => {
         clearTimeout(timeoutId);
