@@ -507,14 +507,14 @@ onUnmounted(() => {
 
     &-text {
       font-weight: 500;
-      font-size: 28px;
+      font-size: 32px;
       color: #fff9cb;
       line-height: 1.4;
       text-align: justify;
       font-family: 'HEAVY';
-      ::v-deep(p) {
+      /* ::v-deep(p) {
         text-indent: 2em;
-      }
+      } */
       /* writing-mode: vertical-rl;
       letter-spacing: 2px; */
     }
@@ -542,7 +542,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 600;
   color: #fff9cb;
   > span {
