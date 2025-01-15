@@ -245,18 +245,17 @@ function onAudioPay() {
   // vad?.start();
   // playShouHua();
   if (showAnswer.value) {
-    if (timeIds.length === 0) {
-      playShenzuoShou();
-      const id = window.setTimeout(() => {
-        playDianTou();
-        const id2 = window.setTimeout(() => {
-          playShouHua();
-        }, 3000);
-        timeIds.push(id2);
-      }, 3000) as number;
-
-      timeIds.push(id);
-    }
+    // if (timeIds.length === 0) {
+    //   playShenzuoShou();
+    //   const id = window.setTimeout(() => {
+    //     playDianTou();
+    //     const id2 = window.setTimeout(() => {
+    //       playShouHua();
+    //     }, 3000);
+    //     timeIds.push(id2);
+    //   }, 3000) as number;
+    //   timeIds.push(id);
+    // }
   }
 }
 
@@ -331,7 +330,7 @@ watch(isWakeUp, (val) => {
       if (audioRef.value) {
         setTimeout(() => {
           store.audioPlayer?.playAudioEl(audioRef.value!);
-          playZhaoShou();
+          // playZhaoShou();
           setTimeout(() => {
             vad?.start();
           }, 500);
@@ -613,7 +612,7 @@ onUnmounted(() => {
 
     &-text {
       font-weight: 500;
-      font-size: 32px;
+      font-size: 36px;
       color: #fff9cb;
       line-height: 1.4;
       text-align: justify;

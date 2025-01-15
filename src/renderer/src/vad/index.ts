@@ -415,7 +415,7 @@ export async function useVAD(
       console.log(speechStartTime);
     }
 
-    if (!STATUS_RECORD.isVW && speechStartTime >= 3) {
+    if (!STATUS_RECORD.isVW && speechStartTime >= 10) {
       speechStartTime = 0;
       micVAD.pause();
       return;
