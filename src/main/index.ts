@@ -248,14 +248,16 @@ app.whenReady().then(async () => {
 
   const mainWindow = await createWindow();
 
-  const ret = globalShortcut.register('Space', () => {
-    mainWindow.webContents.send('SPACE_PRESSED');
-  });
+  if (import.meta.env.PROD) {
+    const ret = globalShortcut.register('Space', () => {
+      mainWindow.webContents.send('SPACE_PRESSED');
+    });
 
-  if (!ret) {
-    console.log('registration failed');
-  } else {
-    console.log('registration success');
+    if (!ret) {
+      console.log('registration failed');
+    } else {
+      console.log('registration success');
+    }
   }
 
   app.on('activate', async function () {

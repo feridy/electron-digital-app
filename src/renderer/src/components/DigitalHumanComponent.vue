@@ -41,9 +41,14 @@ let showVideoMenuTimeId;
 
 const wekaUpStr = ref<string>('');
 
-async function initHuman(modelPath = './scene.glb') {
+async function initHuman(modelPath: string) {
   let clock: THREE.Clock;
   let camera: THREE.PerspectiveCamera;
+
+  // 设置目标帧率
+  const targetFPS = 24;
+  const frameInterval = 1000 / targetFPS; // 每帧的时间间隔（毫秒）
+  let then = Date.now();
 
   // let stats: Stats;
   let mesh: THREE.Mesh;
@@ -72,6 +77,7 @@ async function initHuman(modelPath = './scene.glb') {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   const gltf = await new GLTFLoader().loadAsync(modelPath);
+  // console.log(gltf);
   const model = gltf.scene;
 
   scene.add(model);
@@ -85,6 +91,8 @@ async function initHuman(modelPath = './scene.glb') {
     }
   });
 
+  console.log(model);
+
   if (gltf.animations.length) {
     gltf.animations.forEach((item) => {
       actions[item.name] = mixer.clipAction(item);
@@ -93,7 +101,10 @@ async function initHuman(modelPath = './scene.glb') {
     // console.log(gltf.animations);
   }
 
-  actions['daiji']?.play();
+  // actions['daiji']?.play();
+  // actions['zhaoshou']?.setDuration(4).play();
+  console.log(actions);
+  playIdle();
 
   const environment = RoomEnvironment();
 
@@ -103,9 +114,17 @@ async function initHuman(modelPath = './scene.glb') {
 
   el.appendChild(renderer.domElement);
 
+  // mixer?.addEventListener('finished', () => {
+  //   playIdle();
+  // });
+
   function renderLoop() {
+    const now = Date.now();
+    const tDelta = now - then;
     const delta = clock.getDelta();
     if (mixer) {
+      // 更新时间戳
+      then = now - (tDelta % frameInterval);
       mixer.update(delta);
     }
 
@@ -160,10 +179,92 @@ async function initHuman(modelPath = './scene.glb') {
   window.addEventListener('resize', handleResize);
 }
 
+function playZhaoShou() {
+  console.log(actions);
+  scene?.traverseVisible((item) => {
+    if (item.name === 'arm_hs') {
+      item.renderOrder = 1;
+      // item.visible = false;
+      // console.log(item);
+    }
+    // if (item.name === 'arm_l_sp') {
+    //   item.visible = false;
+    //   console.log(item);
+    // }
+    // if (item.name === 'arm_l') {
+    //   item.visible = false;
+    //   console.log(item);
+    // }
+    if (item.name === 'arm_s_hs') {
+      item.renderOrder = 1;
+      // item.visible = false;
+      // console.log(item);
+    }
+  });
+  // mixer?.stopAllAction();
+  for (const key in actions) {
+    actions[key].stop();
+  }
+  actions['zhaoshou']?.setDuration(4).setLoop(THREE.LoopOnce, 1).fadeIn(0).play();
+  setTimeout(() => {
+    playIdle();
+  }, 3000);
+}
+
+function playShouHua() {
+  for (const key in actions) {
+    actions[key].stop();
+  }
+  actions['shuohua']?.fadeIn(0).play();
+}
+
+function playShenzuoShou() {
+  for (const key in actions) {
+    actions[key].stop();
+  }
+  actions['shenzuoshou'].setLoop(THREE.LoopOnce, 1)?.fadeIn(0).play();
+}
+
+function playDianTou() {
+  for (const key in actions) {
+    actions[key].stop();
+  }
+  actions['diantou']?.setLoop(THREE.LoopOnce, 1).fadeIn(0).play();
+}
+
+function playIdle() {
+  for (const key in actions) {
+    actions[key].stop();
+  }
+  actions['daiji']?.fadeIn(0).play();
+}
+
+const timeIds: number[] = [];
+
 function onAudioPay() {
   // vad?.start();
+  // playShouHua();
+  if (showAnswer.value) {
+    if (timeIds.length === 0) {
+      playShenzuoShou();
+      const id = window.setTimeout(() => {
+        playDianTou();
+        const id2 = window.setTimeout(() => {
+          playShouHua();
+        }, 3000);
+        timeIds.push(id2);
+      }, 3000) as number;
+
+      timeIds.push(id);
+    }
+  }
 }
-function onAudioPause() {}
+
+function onAudioPause() {
+  // timeIds.forEach((item) => window.clearTimeout(item));
+  // timeIds.length = 0;
+  playIdle();
+}
 
 function onKeydown(e: KeyboardEvent) {
   // 按空格就进行切换
@@ -211,9 +312,12 @@ watch(
 watch(
   () => store.isHandleCompleted,
   (isHandleCompleted) => {
-    clearTimeout(closeTimeId);
     // 延时2s，关闭回答的界面
     if (isHandleCompleted) {
+      clearTimeout(closeTimeId);
+      timeIds.forEach((item) => window.clearTimeout(item));
+      timeIds.length = 0;
+      playIdle();
       closeTimeId = setTimeout(() => {
         showAnswer.value = false;
       }, 3000);
@@ -227,6 +331,7 @@ watch(isWakeUp, (val) => {
       if (audioRef.value) {
         setTimeout(() => {
           store.audioPlayer?.playAudioEl(audioRef.value!);
+          playZhaoShou();
           setTimeout(() => {
             vad?.start();
           }, 500);
@@ -246,7 +351,7 @@ onMounted(async () => {
   try {
     const audioPlayer = new AudioPlayer();
     store.setAudioPlayer(audioPlayer);
-    await initHuman('./gxrb.glb');
+    await initHuman('./gxszr.glb');
     vad = await useVAD(
       () => {
         isStartSpeaking.value = true;
@@ -320,6 +425,7 @@ onMounted(async () => {
     setTimeout(() => {
       store.audioPlayer?.playAudioEl(mountAudioRef.value!);
       setTimeout(() => {
+        // playZhaoShou();
         vad?.start();
       }, 500);
     }, 30);
