@@ -71,9 +71,6 @@ importers:
       js-md5:
         specifier: ^0.8.3
         version: 0.8.3
-      koffi:
-        specifier: ^2.9.2
-        version: 2.9.2
       markdown-it:
         specifier: ^14.1.0
         version: 14.1.0
@@ -2361,9 +2358,6 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
-
-  koffi@2.9.2:
-    resolution: {integrity: sha512-qwKzo4PTN66A0mRcLcMCcay5XS0hAcOLaGijtmP72tJSzH5P4OzufPJ+0uHtL+dqVkvVZMnkeEVQoHYy7KBaVw==}
 
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
@@ -6013,8 +6007,6 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
-
-  koffi@2.9.2: {}
 
   kolorist@1.8.0: {}
 

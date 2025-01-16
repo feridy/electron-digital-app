@@ -22,21 +22,24 @@ async function handleOkClick() {
 }
 
 onMounted(async () => {
-  window.electron.ipcRenderer.on('UPDATE_AVAILABLE', (_, version) => {
-    console.log(version);
+  window.electron.ipcRenderer.on(window.api.updaterEventKeys.UPDATE_AVAILABLE, (_, version) => {
+    console.log(`最新的版本是：${version}`);
     newVersion.value = version;
     isOpen.value = true;
     newVersion.value = version;
   });
 
-  window.electron.ipcRenderer.on('UPDATE_PROGRESS', (_, percent, bytesPerSecond, total) => {
-    isDownloading.value = true;
-    downloadProgress.value = Math.ceil(percent * 100) / 100;
-    downloadSpeed.value = bytesPerSecond;
-    willDownloadTotal.value = total;
-  });
+  window.electron.ipcRenderer.on(
+    window.api.updaterEventKeys.UPDATE_PROGRESS,
+    (_, percent, bytesPerSecond, total) => {
+      isDownloading.value = true;
+      downloadProgress.value = Math.ceil(percent * 100) / 100;
+      downloadSpeed.value = bytesPerSecond;
+      willDownloadTotal.value = total;
+    }
+  );
 
-  window.electron.ipcRenderer.on('UPDATE_DOWNLOADED', () => {
+  window.electron.ipcRenderer.on(window.api.updaterEventKeys.UPDATE_DOWNLOADED, () => {
     downloadProgress.value = 100;
     isDownloadEnd.value = true;
     isDownloading.value = false;
@@ -50,24 +53,25 @@ onMounted(async () => {
 <template>
   <Modal
     v-model:open="isOpen"
-    class="modal-wrapper"
+    wrap-class-name="update-modal-wrapper"
     title="版本更新"
-    cancelText="取消更新"
+    cancel-text="取消更新"
     centered
-    :maskClosable="false"
+    :mask-style="{ zIndex: 90000 }"
+    :mask-closable="false"
     :closable="false"
-    @ok="handleOkClick"
-    :okText="!isDownloadEnd ? '下载更新' : '立即更新'"
+    :ok-text="!isDownloadEnd ? '下载更新' : '立即更新'"
     :footer="isDownloading ? null : undefined"
+    @ok="handleOkClick"
   >
-    <div class="update-info" v-if="!isDownloading">当前最新版本：{{ newVersion }}</div>
-    <div class="progress-wrapper" v-else>
+    <div v-if="!isDownloading" class="update-info">当前最新版本：{{ newVersion }}</div>
+    <div v-else class="progress-wrapper">
       <Progress
         :percent="downloadProgress"
         :status="downloadProgress >= 100 ? 'success' : 'active'"
       />
       <div class="download-status">
-        <span style="margin-right: 10px" v-if="!isDownloadEnd">
+        <span v-if="!isDownloadEnd" style="margin-right: 10px">
           下载速度：{{ (downloadSpeed / (1024 * 1024)).toFixed(2) }}mb/s
         </span>
         <span>
@@ -80,8 +84,10 @@ onMounted(async () => {
   </Modal>
 </template>
 
-<style lang="scss" scoped>
-.modal-wrapper {
+<style lang="scss">
+.update-modal-wrapper {
+  z-index: 9000000 !important;
+
   .update-info {
     display: flex;
     justify-content: center;

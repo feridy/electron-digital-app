@@ -3,10 +3,12 @@ import { electronAPI } from '@electron-toolkit/preload';
 import path from 'path';
 import fs from 'fs-extra';
 import url from 'url';
+import { UpdaterEventKeys } from '../main/updater';
 
 // Custom APIs for renderer
 const api = {
   tcpConnectState: false,
+  updaterEventKeys: Object.freeze(UpdaterEventKeys),
   getVideos: async () => {
     const dir = path.join(process.cwd(), './videos');
     const result = (await fs.readdir(dir)).map((item) => path.join(dir, item));
@@ -32,14 +34,14 @@ const api = {
     return json;
   },
   checkForUpdate: async () => {
-    const version = electronAPI.ipcRenderer.invoke('CHECK_FOR_UPDATE');
+    const version = electronAPI.ipcRenderer.invoke(UpdaterEventKeys.CHECK_FOR_UPDATE);
     return version;
   },
   startDownloadUpdate: async () => {
-    await electronAPI.ipcRenderer.invoke('DOWNLOAD_UPDATE_NOW');
+    await electronAPI.ipcRenderer.invoke(UpdaterEventKeys.DOWNLOAD_UPDATE_NOW);
   },
   startInstallUpdate: async () => {
-    await electronAPI.ipcRenderer.invoke('INSTALL_UPDATE_NOW');
+    await electronAPI.ipcRenderer.invoke(UpdaterEventKeys.INSTALL_UPDATE_NOW);
   },
   execute: (...args) => electronAPI.ipcRenderer.invoke('db:execute', ...args)
 };

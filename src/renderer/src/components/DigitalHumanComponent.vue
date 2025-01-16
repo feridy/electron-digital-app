@@ -183,20 +183,11 @@ function playZhaoShou() {
   console.log(actions);
   scene?.traverseVisible((item) => {
     if (item.name === 'arm_hs') {
-      item.renderOrder = 1;
-      // item.visible = false;
-      // console.log(item);
+      item.renderOrder = 10;
     }
-    // if (item.name === 'arm_l_sp') {
-    //   item.visible = false;
-    //   console.log(item);
-    // }
-    // if (item.name === 'arm_l') {
-    //   item.visible = false;
-    //   console.log(item);
-    // }
+
     if (item.name === 'arm_s_hs') {
-      item.renderOrder = 1;
+      item.renderOrder = 10;
       // item.visible = false;
       // console.log(item);
     }
@@ -205,10 +196,10 @@ function playZhaoShou() {
   for (const key in actions) {
     actions[key].stop();
   }
-  actions['zhaoshou']?.setDuration(4).setLoop(THREE.LoopOnce, 1).fadeIn(0).play();
+  actions['zhaoshou']?.setLoop(THREE.LoopOnce, 1).play();
   setTimeout(() => {
     playIdle();
-  }, 3000);
+  }, 2000);
 }
 
 function playShouHua() {
@@ -222,7 +213,7 @@ function playShenzuoShou() {
   for (const key in actions) {
     actions[key].stop();
   }
-  actions['shenzuoshou'].setLoop(THREE.LoopOnce, 1)?.fadeIn(0).play();
+  actions['shenzuoshou'].setLoop(THREE.LoopOnce, 1)?.play();
 }
 
 function playDianTou() {
@@ -245,24 +236,24 @@ function onAudioPay() {
   // vad?.start();
   // playShouHua();
   if (showAnswer.value) {
-    // if (timeIds.length === 0) {
-    //   playShenzuoShou();
-    //   const id = window.setTimeout(() => {
-    //     playDianTou();
-    //     const id2 = window.setTimeout(() => {
-    //       playShouHua();
-    //     }, 3000);
-    //     timeIds.push(id2);
-    //   }, 3000) as number;
-    //   timeIds.push(id);
-    // }
+    if (timeIds.length === 0) {
+      playShenzuoShou();
+      const id = window.setTimeout(() => {
+        playShouHua();
+        // const id2 = window.setTimeout(() => {
+        //   playShouHua();
+        // }, 3000);
+        // timeIds.push(id2);
+      }, 3000) as number;
+      timeIds.push(id);
+    }
   }
 }
 
 function onAudioPause() {
   // timeIds.forEach((item) => window.clearTimeout(item));
   // timeIds.length = 0;
-  playIdle();
+  // playIdle();
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -330,7 +321,7 @@ watch(isWakeUp, (val) => {
       if (audioRef.value) {
         setTimeout(() => {
           store.audioPlayer?.playAudioEl(audioRef.value!);
-          // playZhaoShou();
+          playZhaoShou();
           setTimeout(() => {
             vad?.start();
           }, 500);
@@ -647,13 +638,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 34px;
+  font-size: 36px;
   font-weight: 600;
   color: #fff9cb;
   > span {
     writing-mode: vertical-rl;
     letter-spacing: 4px;
-    font-size: 26px;
+    font-size: 36px;
     font-weight: 600;
     font-family: 'HEAVY';
   }
