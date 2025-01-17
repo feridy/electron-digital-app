@@ -199,7 +199,7 @@ function playZhaoShou() {
   actions['zhaoshou']?.setLoop(THREE.LoopOnce, 1).play();
   setTimeout(() => {
     playIdle();
-  }, 2000);
+  }, 2500);
 }
 
 function playShouHua() {
@@ -213,7 +213,7 @@ function playShenzuoShou() {
   for (const key in actions) {
     actions[key].stop();
   }
-  actions['shenzuoshou'].setLoop(THREE.LoopOnce, 1)?.play();
+  actions['shenzuoshou'].setDuration(8).setLoop(THREE.LoopOnce, 1)?.play();
 }
 
 function playDianTou() {
@@ -240,11 +240,7 @@ function onAudioPay() {
       playShenzuoShou();
       const id = window.setTimeout(() => {
         playShouHua();
-        // const id2 = window.setTimeout(() => {
-        //   playShouHua();
-        // }, 3000);
-        // timeIds.push(id2);
-      }, 3000) as number;
+      }, 7500) as number;
       timeIds.push(id);
     }
   }
@@ -638,15 +634,18 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 36px;
   font-weight: 600;
   color: #fff9cb;
+  flex-wrap: wrap;
+  padding: 40px 0;
+  max-height: 100vh;
   > span {
-    writing-mode: vertical-rl;
+    writing-mode: vertical-lr;
     letter-spacing: 4px;
-    font-size: 36px;
+    font-size: 56px;
     font-weight: 600;
     font-family: 'HEAVY';
+    /* text-align: center; */
   }
 }
 </style>
