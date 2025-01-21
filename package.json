@@ -1,6 +1,6 @@
 {
   "name": "digital-app",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "An AI question application by HD.co create",
   "main": "./out/main/index.js",
   "author": "example.com",

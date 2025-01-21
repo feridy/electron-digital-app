@@ -199,7 +199,7 @@ function playZhaoShou() {
   actions['zhaoshou']?.setLoop(THREE.LoopOnce, 1).play();
   setTimeout(() => {
     playIdle();
-  }, 2500);
+  }, 3400);
 }
 
 function playShouHua() {
